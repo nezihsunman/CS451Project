@@ -7,18 +7,18 @@ import geniusweb.party.Capabilities;
 import geniusweb.party.DefaultParty;
 import geniusweb.party.inform.*;
 import geniusweb.profile.PartialOrdering;
+import geniusweb.profile.utilityspace.LinearAdditive;
 import geniusweb.profileconnection.ProfileConnectionFactory;
 import geniusweb.profileconnection.ProfileInterface;
 import geniusweb.progress.Progress;
 import geniusweb.progress.ProgressRounds;
 import tudelft.utilities.logging.Reporter;
 
+import javax.websocket.DeploymentException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Random;
+import java.util.*;
 import java.util.logging.Level;
 
 /**
@@ -41,6 +41,10 @@ public class MyAgent extends DefaultParty {
     private PartyId me;
     private Progress progress;
     private SimpleLinearOrdering estimatedProfile = null;
+    private AllBidsList allbids; // all bids in domain.
+    private ImpMap impMap = null;
+    private ImpMap opponentImpMap = null;
+    private BigDecimal reservationImportanceRatio;
 
     public MyAgent() {
     }
@@ -54,9 +58,7 @@ public class MyAgent extends DefaultParty {
         try {
             if (info instanceof Settings) {
                 Settings settings = (Settings) info;
-                this.profileint = ProfileConnectionFactory.create(settings.getProfile().getURI(), getReporter());
-                this.me = settings.getID();
-                this.progress = settings.getProgress();
+                init(settings);
             } else if (info instanceof ActionDone) {
                 Action otheract = ((ActionDone) info).getAction();
                 if (otheract instanceof Offer) {
@@ -130,6 +132,63 @@ public class MyAgent extends DefaultParty {
         }
 
         return estimatedProfile.getUtility(bid).compareTo(N09) >= 0;
+    }
+
+    private void init(Settings settings) throws IOException, DeploymentException {
+        this.me = settings.getID();
+        this.progress = settings.getProgress();
+        this.profileint = ProfileConnectionFactory.create(settings.getProfile().getURI(), getReporter());
+        if(profileint instanceof PartialOrdering){
+            PartialOrdering partialprofile = (PartialOrdering) profileint.getProfile();
+            allbids = new AllBidsList(partialprofile.getDomain());
+            this.impMap = new ImpMap(partialprofile);
+            this.opponentImpMap = new ImpMap(partialprofile);
+            List<Bid> orderedbids = new SimpleLinearOrdering(profileint.getProfile()).getBids();
+            this.impMap.self_update(orderedbids);
+            this.reservationImportanceRatio = this.getReservationRatio();
+            //TODO elimizdeki bid sayısı belli bir orandan düşükse elimizde var olan bid sayısı
+            //kadar BİLİNMEYEN özellikler üzerinden random bidler ile elicitation yap
+        }
+        else if(profileint instanceof LinearAdditive){
+            LinearAdditive linearprofile = (LinearAdditive) profileint.getProfile();
+            allbids = new AllBidsList(linearprofile.getDomain());
+            this.impMap = new ImpMap(linearprofile);
+            this.opponentImpMap = new ImpMap(linearprofile);
+            List<Bid> orderedbids = sortAllBids(allbids, linearprofile);
+            this.impMap.self_update(orderedbids); // TODO questionmark
+            this.reservationImportanceRatio = linearprofile.getUtility(linearprofile.getReservationBid());
+        }
+
+        getReporter().log(Level.INFO,
+                "reservation ratio: " + this.reservationImportanceRatio);
+        getReporter().log(Level.INFO,
+                "Party " + me + " has finished initialization");
+    }
+
+    private List<Bid> sortAllBids(AllBidsList allbids, LinearAdditive linearprofile){
+        List<Bid> orderedBids = new ArrayList<Bid>();
+        for(BigInteger i = BigInteger.valueOf(0); i.compareTo(allbids.size()) != 0; i.add(BigInteger.valueOf(1))){
+            orderedBids.add(allbids.get(i));
+        }
+        Collections.sort(orderedBids, new Comparator<Bid>() {
+            @Override
+            public int compare(Bid bid, Bid bid2) {
+                return linearprofile.getUtility(bid).compareTo(linearprofile.getUtility(bid2));
+            }
+        });
+        return orderedBids;
+    }
+    private BigDecimal getReservationRatio() throws IOException {
+        //TODO implement
+       /*double medianBidRatio = (this.MEDIAN_IMPORTANCE - this.MIN_IMPORTANCE)
+                / (this.MAX_IMPORTANCE - this.MIN_IMPORTANCE);
+        Bid resBid = this.profileint.getProfile().getReservationBid();
+        double resValue = 0.1;
+        if (resBid != null) {
+            resValue = this.impMap.getImportance(resBid);
+        }
+        return resValue * medianBidRatio / 0.5;*/
+        return BigDecimal.valueOf(0.8);
     }
 
 }
