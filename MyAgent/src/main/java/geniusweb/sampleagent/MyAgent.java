@@ -107,12 +107,13 @@ public class MyAgent extends DefaultParty {
     private void myTurn() throws IOException {
         Action action = null;
 
-        if(elicitBidList.size() >= 0){
+        if(elicitBidList != null && elicitBidList.size() >= 0){
             if(elicitBidList.size() == 0){
                 List<Bid> orderedbids = estimatedProfile.getBids();
                 this.impMap = new ImpMap(profileint.getProfile());
                 this.impMap.self_update(orderedbids);
                 action = new Offer(me, estimatedProfile.getBids().get(estimatedProfile.getBids().size()-1));
+                elicitBidList = null;
                 // TODO offer strategy
             }
             else{
@@ -120,6 +121,7 @@ public class MyAgent extends DefaultParty {
                 elicitBidList.remove(0);
             }
         }
+
         else {
             if (lastReceivedBid != null) {
                 // then we do the action now, no need to ask user
