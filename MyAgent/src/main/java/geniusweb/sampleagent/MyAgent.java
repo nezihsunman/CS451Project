@@ -13,12 +13,14 @@ import geniusweb.profileconnection.ProfileConnectionFactory;
 import geniusweb.profileconnection.ProfileInterface;
 import geniusweb.progress.Progress;
 import geniusweb.progress.ProgressRounds;
+import tudelft.utilities.immutablelist.Outer;
 import tudelft.utilities.logging.Reporter;
 
 import javax.websocket.DeploymentException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -46,6 +48,10 @@ public class MyAgent extends DefaultParty {
     private ImpMap impMap = null;
     private ImpMap opponentImpMap = null;
     private BigDecimal reservationImportanceRatio;
+    private List<Bid> elicitBidList = new ArrayList<>();
+
+    private static final BigDecimal elicitBoundRatio = new BigDecimal("0.01");
+    //TODO given bid boundlarını hesaba kat
 
     public MyAgent() {
     }
@@ -100,28 +106,39 @@ public class MyAgent extends DefaultParty {
      */
     private void myTurn() throws IOException {
         Action action = null;
-        if (estimatedProfile == null) {
-            estimatedProfile = new SimpleLinearOrdering(profileint.getProfile());
-        }
 
-        if (lastReceivedBid != null) {
-            // then we do the action now, no need to ask user
-            if (estimatedProfile.contains(lastReceivedBid)) {
-                if (isGood(lastReceivedBid)) {
-                    action = new Accept(me, lastReceivedBid);
-                }
-            } else {
-                // we did not yet assess the received bid
-                action = new ElicitComparison(me, lastReceivedBid, estimatedProfile.getBids());
+        if(elicitBidList.size() >= 0){
+            if(elicitBidList.size() == 0){
+                List<Bid> orderedbids = estimatedProfile.getBids();
+                this.impMap = new ImpMap(profileint.getProfile());
+                this.impMap.self_update(orderedbids);
             }
-            if (progress instanceof ProgressRounds) {
-                progress = ((ProgressRounds) progress).advance();
+            else{
+                action = new ElicitComparison(me, (Bid) elicitBidList.get(0), estimatedProfile.getBids());
+                elicitBidList.remove(0);
             }
         }
-        // Otherwise just offer a Random bid
-        // TODO can't we do better than random?
-        if (action == null)
-            action = randomBid();
+        else {
+            if (lastReceivedBid != null) {
+                // then we do the action now, no need to ask user
+                if (estimatedProfile.contains(lastReceivedBid)) {
+                    if (isGood(lastReceivedBid)) {
+                        action = new Accept(me, lastReceivedBid);
+                    }
+                } else {
+                    //TODO opponent modelling
+                }
+                if (progress instanceof ProgressRounds) {
+                    progress = ((ProgressRounds) progress).advance();
+                }
+            }
+
+            // TODO can't we do better than random?
+            if (action == null){
+                action = new Offer(me, estimatedProfile.getBids().get(estimatedProfile.getBids().size()-1));
+                // TODO offer strategy
+            }
+        }
         getConnection().send(action);
     }
 
@@ -131,6 +148,15 @@ public class MyAgent extends DefaultParty {
         Bid bid = bidspace.get(BigInteger.valueOf(i));
 
         return new Offer(me, bid);
+    }
+
+    private Bid randomBidGenerator() throws IOException {
+        //TODO calculate w/r to impMap
+        AllBidsList bidspace = new AllBidsList( profileint.getProfile().getDomain());
+        long i = random.nextInt(bidspace.size().intValue());
+        Bid bid = bidspace.get(BigInteger.valueOf(i));
+
+        return bid;
     }
 
     private boolean isGood(Bid bid) {
@@ -147,41 +173,31 @@ public class MyAgent extends DefaultParty {
         this.profileint = ProfileConnectionFactory.create(settings.getProfile().getURI(), getReporter());
 
         if(profileint.getProfile()  instanceof LinearAdditive){
-            getReporter().log(Level.INFO,
-                    "Entered the linear additive profile" );
-            LinearAdditive linearprofile = (LinearAdditive) profileint.getProfile();
-            getReporter().log(Level.INFO,
-                    "Entered two" );
-            allbids = new AllBidsList(linearprofile.getDomain());
-            getReporter().log(Level.INFO,
-                    "Entered three" );
-            this.impMap = new ImpMap(linearprofile);
-            getReporter().log(Level.INFO,
-                    "Entered four" );
-            this.opponentImpMap = new ImpMap(linearprofile);
-            getReporter().log(Level.INFO,
-                    "Entered five" );
-            //List<Bid> orderedbids = sortAllBids(allbids, linearprofile);
-            //getReporter().log(Level.INFO,
-            //        "min bid: " + orderedbids.get(0)+ "max bid: "+orderedbids.get(orderedbids.size()-1));
-            //this.impMap.self_update(orderedbids); // TODO questionmark
-            this.reservationImportanceRatio = linearprofile.getUtility(linearprofile.getReservationBid());
-            getReporter().log(Level.INFO,
-                    "Exit the linear profile" );
+            throw new UnsupportedOperationException(
+                    "Only DefaultPartialOrdering supported");
         }
         else if(profileint.getProfile() instanceof PartialOrdering){
-            getReporter().log(Level.INFO,
-                "Entered the partial profile" );
-
             PartialOrdering partialprofile = (PartialOrdering) profileint.getProfile();
             allbids = new AllBidsList(partialprofile.getDomain());
             this.impMap = new ImpMap(partialprofile);
+
             this.opponentImpMap = new ImpMap(partialprofile);
-            List<Bid> orderedbids = new SimpleLinearOrdering(profileint.getProfile()).getBids();
+            estimatedProfile = new SimpleLinearOrdering(profileint.getProfile());
+            List<Bid> orderedbids = estimatedProfile.getBids();
             this.impMap.self_update(orderedbids);
-            this.reservationImportanceRatio = this.getReservationRatio();
+            if(BigDecimal.valueOf(orderedbids.size()).divide(new BigDecimal(allbids.size())).compareTo(elicitBoundRatio) == -1){
+                for(int i = 0; i< orderedbids.size(); i++){
+                    elicitBidList.add(randomBidGenerator());
+                    //TODO add arguments
+                }
+            }
+            //this.reservationImportanceRatio = this.getReservationRatio();
             //TODO elimizdeki bid sayısı belli bir orandan düşükse elimizde var olan bid sayısı
             //kadar BİLİNMEYEN özellikler üzerinden random bidler ile elicitation yap
+        }
+        else{
+            throw new UnsupportedOperationException(
+                    "Only DefaultPartialOrdering supported");
         }
 
         getReporter().log(Level.INFO,
@@ -204,16 +220,24 @@ public class MyAgent extends DefaultParty {
         return orderedBids;
     }
     private BigDecimal getReservationRatio() throws IOException {
-        //TODO implement
-       /*double medianBidRatio = (this.MEDIAN_IMPORTANCE - this.MIN_IMPORTANCE)
+        try{
+            //TODO implement
+            /*double medianBidRatio = (this.MEDIAN_IMPORTANCE - this.MIN_IMPORTANCE)
                 / (this.MAX_IMPORTANCE - this.MIN_IMPORTANCE);
-        Bid resBid = this.profileint.getProfile().getReservationBid();
-        double resValue = 0.1;
-        if (resBid != null) {
-            resValue = this.impMap.getImportance(resBid);
+            Bid resBid = this.profileint.getProfile().getReservationBid();
+            double resValue = 0.1;
+            if (resBid != null) {
+                resValue = this.impMap.getImportance(resBid);
+            }
+            return resValue * medianBidRatio / 0.5;*/
+            return BigDecimal.valueOf(0.8); // TODO for now
+        } catch (Exception e) {
+            return BigDecimal.valueOf(0.8);
         }
-        return resValue * medianBidRatio / 0.5;*/
-        return BigDecimal.valueOf(0.8);
+
+
+
+
     }
 
 }
