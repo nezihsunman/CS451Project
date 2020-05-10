@@ -72,9 +72,14 @@ public class MyAgent extends DefaultParty {
                     lastReceivedBid = ((Offer) otheract).getBid();
                 } else if (otheract instanceof Comparison) {
                     estimatedProfile = estimatedProfile.with(((Comparison) otheract).getBid(), ((Comparison) otheract).getWorse());
+                    getReporter().log(Level.INFO,
+                            "Entered to myturn comparsion" );
                     myTurn();
+
                 }
             } else if (info instanceof YourTurn) {
+                getReporter().log(Level.INFO,
+                        "Entered to myturn" );
                 myTurn();
             } else if (info instanceof Finished) {
                 getReporter().log(Level.INFO, "Final ourcome:" + info);
@@ -101,10 +106,14 @@ public class MyAgent extends DefaultParty {
     private void myTurn() throws IOException {
         Action action = null;
         if (estimatedProfile == null) {
+            getReporter().log(Level.INFO,
+                    "Entered to myturn in estimatred profile ==null" );
             estimatedProfile = new SimpleLinearOrdering(profileint.getProfile());
         }
 
         if (lastReceivedBid != null) {
+            getReporter().log(Level.INFO,
+                    "Entered to myturn in estimatred profile !=null" );
             // then we do the action now, no need to ask user
             if (estimatedProfile.contains(lastReceivedBid)) {
                 if (isGood(lastReceivedBid)) {
@@ -121,14 +130,15 @@ public class MyAgent extends DefaultParty {
         // Otherwise just offer a Random bid
         // TODO can't we do better than random?
         if (action == null)
-            action = randomBid();
+            getReporter().log(Level.INFO,
+                    "Entered to myturn in send max of lis" );
+            action = maxBid();
         getConnection().send(action);
     }
 
-    private Offer randomBid() throws IOException {
+    private Offer maxBid() throws IOException {
         AllBidsList bidspace = new AllBidsList( profileint.getProfile().getDomain());
-        long i = random.nextInt(bidspace.size().intValue());
-        Bid bid = bidspace.get(BigInteger.valueOf(i));
+        Bid bid = bidspace.get(bidspace.size().add(BigInteger.valueOf(-1)));
 
         return new Offer(me, bid);
     }
@@ -165,7 +175,13 @@ public class MyAgent extends DefaultParty {
             //getReporter().log(Level.INFO,
             //        "min bid: " + orderedbids.get(0)+ "max bid: "+orderedbids.get(orderedbids.size()-1));
             //this.impMap.self_update(orderedbids); // TODO questionmark
-            this.reservationImportanceRatio = linearprofile.getUtility(linearprofile.getReservationBid());
+            try {
+                this.reservationImportanceRatio = linearprofile.getUtility(linearprofile.getReservationBid());
+            }catch (Exception e) {
+                //e.printStackTrace();
+                this.reservationImportanceRatio = BigDecimal.valueOf(0.8);
+            }
+
             getReporter().log(Level.INFO,
                     "Exit the linear profile" );
         }

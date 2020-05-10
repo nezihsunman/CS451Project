@@ -1,16 +1,17 @@
 package geniusweb.sampleagent;
 
+import geniusweb.bidspace.BidsWithUtility;
 import geniusweb.issuevalue.Bid;
 import geniusweb.issuevalue.Domain;
 import geniusweb.profile.DefaultPartialOrdering;
 import geniusweb.profile.Profile;
+import geniusweb.profile.utilityspace.LinearAdditive;
 import geniusweb.profile.utilityspace.UtilitySpace;
+import geniusweb.profile.utilityspace.ValueSetUtilities;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * A simple list of bids, but all bids are fully ordered (better or worse than
@@ -19,10 +20,23 @@ import java.util.List;
 public class SimpleLinearOrdering implements UtilitySpace {
 
     private final Domain domain;
-    private final List<Bid> bids; // worst bid first, best bid last.
+    private  List<Bid> bids; // worst bid first, best bid last.
+    private  BidsWithUtility bidutils;
+    private LinearAdditive utilspace;
 
     SimpleLinearOrdering(Profile profile) {
-        this(profile.getDomain(), getSortedBids(profile));
+        if(profile instanceof LinearAdditive)){
+
+        }
+        if (!(profile instanceof DefaultPartialOrdering) {
+            this(profile.getDomain());
+        }
+
+    }
+
+    SimpleLinearOrdering(Profile profile) {
+        this.utilspace = (LinearAdditive) profile;
+        bidutils = new BidsWithUtility(utilspace);
     }
 
     /**
@@ -36,13 +50,17 @@ public class SimpleLinearOrdering implements UtilitySpace {
         this.domain = domain;
         this.bids = bids;
     }
+    SimpleLinearOrdering(Domain domain, BidsWithUtility bids) {
+        this.domain = domain;
+        this.bidutils = bids;
+    }
 
     /**
      * @param profile
      * @return a list of bids in the profile sorted from low to high utility.
      */
     private static List<Bid> getSortedBids(Profile profile) {
-        if (!(profile instanceof DefaultPartialOrdering)) {
+        if (!(profile instanceof DefaultPartialOrdering) && !(profile instanceof LinearAdditive)) {
             throw new UnsupportedOperationException("Only DefaultPartialOrdering supported");
         }
         DefaultPartialOrdering prof = (DefaultPartialOrdering) profile;
