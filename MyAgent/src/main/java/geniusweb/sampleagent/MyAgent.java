@@ -182,13 +182,28 @@ public class MyAgent extends DefaultParty {
             this.impMap = new ImpMap(partialprofile);
 
             this.opponentImpMap = new ImpMap(partialprofile);
+
+            getReporter().log(Level.INFO, "1one");
+
             estimatedProfile = new SimpleLinearOrdering(profileint.getProfile());
             List<Bid> orderedbids = estimatedProfile.getBids();
+
+            getReporter().log(Level.INFO, "2two");
+
             this.impMap.self_update(orderedbids);
-            if(BigDecimal.valueOf(orderedbids.size()).divide(new BigDecimal(allbids.size())).compareTo(elicitBoundRatio) == -1){
+
+            getReporter().log(Level.INFO, "3three");
+
+            if(BigDecimal.valueOf(orderedbids.size()).divide(new BigDecimal(allbids.size()), 8, RoundingMode.HALF_UP).compareTo(elicitBoundRatio) == -1){
                 for(int i = 0; i< orderedbids.size(); i++){
+
+                    getReporter().log(Level.INFO, "4four, i:"+i);
+
                     elicitBidList.add(randomBidGenerator());
                     //TODO add arguments
+
+                    getReporter().log(Level.INFO, "5five");
+
                 }
             }
             //this.reservationImportanceRatio = this.getReservationRatio();
