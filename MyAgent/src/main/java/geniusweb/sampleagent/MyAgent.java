@@ -6,6 +6,7 @@ import geniusweb.issuevalue.Bid;
 import geniusweb.party.Capabilities;
 import geniusweb.party.DefaultParty;
 import geniusweb.party.inform.*;
+import geniusweb.profile.DefaultPartialOrdering;
 import geniusweb.profile.PartialOrdering;
 import geniusweb.profile.utilityspace.LinearAdditive;
 import geniusweb.profileconnection.ProfileConnectionFactory;
@@ -55,10 +56,16 @@ public class MyAgent extends DefaultParty {
 
     @Override
     public void notifyChange(Inform info) {
+        getReporter().log(Level.INFO,
+                "Entered to notify change" );
         try {
             if (info instanceof Settings) {
+                getReporter().log(Level.INFO,
+                        "Entered to settings notify" );
                 Settings settings = (Settings) info;
                 init(settings);
+                getReporter().log(Level.INFO,
+                        "Exit settings" );
             } else if (info instanceof ActionDone) {
                 Action otheract = ((ActionDone) info).getAction();
                 if (otheract instanceof Offer) {
@@ -138,7 +145,34 @@ public class MyAgent extends DefaultParty {
         this.me = settings.getID();
         this.progress = settings.getProgress();
         this.profileint = ProfileConnectionFactory.create(settings.getProfile().getURI(), getReporter());
-        if(profileint instanceof PartialOrdering){
+
+        if(profileint.getProfile()  instanceof LinearAdditive){
+            getReporter().log(Level.INFO,
+                    "Entered the linear additive profile" );
+            LinearAdditive linearprofile = (LinearAdditive) profileint.getProfile();
+            getReporter().log(Level.INFO,
+                    "Entered two" );
+            allbids = new AllBidsList(linearprofile.getDomain());
+            getReporter().log(Level.INFO,
+                    "Entered three" );
+            this.impMap = new ImpMap(linearprofile);
+            getReporter().log(Level.INFO,
+                    "Entered four" );
+            this.opponentImpMap = new ImpMap(linearprofile);
+            getReporter().log(Level.INFO,
+                    "Entered five" );
+            //List<Bid> orderedbids = sortAllBids(allbids, linearprofile);
+            //getReporter().log(Level.INFO,
+            //        "min bid: " + orderedbids.get(0)+ "max bid: "+orderedbids.get(orderedbids.size()-1));
+            //this.impMap.self_update(orderedbids); // TODO questionmark
+            this.reservationImportanceRatio = linearprofile.getUtility(linearprofile.getReservationBid());
+            getReporter().log(Level.INFO,
+                    "Exit the linear profile" );
+        }
+        else if(profileint.getProfile() instanceof PartialOrdering){
+            getReporter().log(Level.INFO,
+                "Entered the partial profile" );
+
             PartialOrdering partialprofile = (PartialOrdering) profileint.getProfile();
             allbids = new AllBidsList(partialprofile.getDomain());
             this.impMap = new ImpMap(partialprofile);
@@ -148,15 +182,6 @@ public class MyAgent extends DefaultParty {
             this.reservationImportanceRatio = this.getReservationRatio();
             //TODO elimizdeki bid sayısı belli bir orandan düşükse elimizde var olan bid sayısı
             //kadar BİLİNMEYEN özellikler üzerinden random bidler ile elicitation yap
-        }
-        else if(profileint instanceof LinearAdditive){
-            LinearAdditive linearprofile = (LinearAdditive) profileint.getProfile();
-            allbids = new AllBidsList(linearprofile.getDomain());
-            this.impMap = new ImpMap(linearprofile);
-            this.opponentImpMap = new ImpMap(linearprofile);
-            List<Bid> orderedbids = sortAllBids(allbids, linearprofile);
-            this.impMap.self_update(orderedbids); // TODO questionmark
-            this.reservationImportanceRatio = linearprofile.getUtility(linearprofile.getReservationBid());
         }
 
         getReporter().log(Level.INFO,
