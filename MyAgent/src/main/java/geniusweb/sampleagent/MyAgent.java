@@ -6,14 +6,12 @@ import geniusweb.issuevalue.Bid;
 import geniusweb.party.Capabilities;
 import geniusweb.party.DefaultParty;
 import geniusweb.party.inform.*;
-import geniusweb.profile.DefaultPartialOrdering;
 import geniusweb.profile.PartialOrdering;
 import geniusweb.profile.utilityspace.LinearAdditive;
 import geniusweb.profileconnection.ProfileConnectionFactory;
 import geniusweb.profileconnection.ProfileInterface;
 import geniusweb.progress.Progress;
 import geniusweb.progress.ProgressRounds;
-import tudelft.utilities.immutablelist.Outer;
 import tudelft.utilities.logging.Reporter;
 
 import javax.websocket.DeploymentException;
@@ -48,7 +46,9 @@ public class MyAgent extends DefaultParty {
     private ImpMap impMap = null;
     private ImpMap opponentImpMap = null;
     private BigDecimal reservationImportanceRatio;
+    private double offerLowerRatio = 1;
     private List<Bid> elicitBidList = new ArrayList<>();
+    private int opponentImpmapConstant = 50;
 
     private static final BigDecimal elicitBoundRatio = new BigDecimal("0.01");
     //TODO given bid boundlarını hesaba kat
@@ -104,7 +104,36 @@ public class MyAgent extends DefaultParty {
      * Called when it's (still) our turn and we should take some action. Also
      * Updates the progress if necessary.
      */
+
+    private void strategySelection(double time){
+        if (time < 0.01) {
+            this.opponentImpmapConstant = 50;
+        } else if (time < 0.02) {
+            this.opponentImpmapConstant = 40;
+        } else if (time < 0.1) {
+            this.opponentImpmapConstant = 20;
+        } else if (time < 0.2) {
+            this.opponentImpmapConstant = 10;
+        } else if (time < 0.5) {
+            this.opponentImpmapConstant = 2;
+        } else if (time < 0.9) {
+            this.opponentImpmapConstant = 40;
+        } else if (time < 0.98) {
+            this.opponentImpmapConstant = 80;
+        } else if (time < 0.995) {
+            this.opponentImpmapConstant = 90;
+        } else if (time < 0.999) {
+            this.opponentImpmapConstant = 100;
+        } else {
+            this.opponentImpmapConstant = 200;
+        }
+        this.opponentImpMap.opponent_update(this.lastReceivedBid, this.opponentImpmapConstant);
+        //TODO sumWeight is not between 0 and 1 (fix)
+        getReporter().log(Level.INFO, "Received Bid sumWeight:" + opponentImpMap.getImportance(this.lastReceivedBid));
+    }
+
     private void myTurn() throws IOException {
+        double time = progress.get(System.currentTimeMillis());
         Action action = null;
 
         if(elicitBidList != null && elicitBidList.size() >= 0){
@@ -130,6 +159,7 @@ public class MyAgent extends DefaultParty {
                         action = new Accept(me, lastReceivedBid);
                     }
                 } else {
+                    strategySelection(time);
                     //TODO opponent modelling
                 }
                 if (progress instanceof ProgressRounds) {
@@ -143,7 +173,6 @@ public class MyAgent extends DefaultParty {
                 // TODO offer strategy
             }
         }
-
 
         getConnection().send(action);
     }

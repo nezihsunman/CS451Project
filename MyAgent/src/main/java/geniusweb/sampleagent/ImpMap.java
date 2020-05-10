@@ -40,14 +40,14 @@ public class ImpMap extends HashMap<String, List<impUnit>> {
 	 * 
 	 * @param receivedOfferBid tbe received opponent bid.
 	 */
-	public void opponent_update(Bid receivedOfferBid) {
+	public void opponent_update(Bid receivedOfferBid, int opponentConstant) {
 		for (String issue : receivedOfferBid.getIssues()) {
 			ValueSet values = domain.getValues(issue);
 			List<impUnit> currentIssueList = this.get(issue);
 			for (impUnit currentUnit : currentIssueList) {
 				if (currentUnit.valueOfIssue
 						.equals(receivedOfferBid.getValue(issue))) {
-					currentUnit.meanWeightSum += 1;
+					currentUnit.meanWeightSum += opponentConstant;
 					break;
 				}
 			}
