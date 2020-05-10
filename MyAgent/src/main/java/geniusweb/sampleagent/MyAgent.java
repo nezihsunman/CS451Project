@@ -112,6 +112,8 @@ public class MyAgent extends DefaultParty {
                 List<Bid> orderedbids = estimatedProfile.getBids();
                 this.impMap = new ImpMap(profileint.getProfile());
                 this.impMap.self_update(orderedbids);
+                action = new Offer(me, estimatedProfile.getBids().get(estimatedProfile.getBids().size()-1));
+                // TODO offer strategy
             }
             else{
                 action = new ElicitComparison(me, (Bid) elicitBidList.get(0), estimatedProfile.getBids());
@@ -139,6 +141,8 @@ public class MyAgent extends DefaultParty {
                 // TODO offer strategy
             }
         }
+
+
         getConnection().send(action);
     }
 
