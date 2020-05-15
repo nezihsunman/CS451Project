@@ -70,7 +70,7 @@ public class MyAgent extends DefaultParty {
     private static BigDecimal lostElicitScore = new BigDecimal("0.00");
     private static BigDecimal defaultScore = new BigDecimal("0.00");
     //Set default as 0.1
-    private static BigDecimal elicitationCost = new BigDecimal("0.01");
+    private static BigDecimal elicitationCost = new BigDecimal("0.001");
     private static BigDecimal elicitBoundRatio = new BigDecimal("0.02");
     private static BigDecimal exploredBidRatio = new BigDecimal("0.00");
     //TODO given bid boundlarını hesaba kat
@@ -95,21 +95,28 @@ public class MyAgent extends DefaultParty {
     public void notifyChange(Inform info) {
         try {
             if (info instanceof Settings) {
+                getReporter().log(Level.INFO, "--- Setting is initializing");
                 Settings settings = (Settings) info;
-                getReporter().log(Level.INFO, "---Settings Parameters:" + settings.getParemeters());
                 init(settings);
+                getReporter().log(Level.INFO, "---"+me+" Setting initialization is done");
             } else if (info instanceof ActionDone) {
                 Action lastReceivedAction = ((ActionDone) info).getAction();
                 if (lastReceivedAction instanceof Offer) {
-                    getReporter().log(Level.INFO, "---"+me+"    Offer came:" + ((Offer) lastReceivedAction).getBid());
+                    getReporter().log(Level.INFO, "---"+me+"   Offer came:" + ((Offer) lastReceivedAction).getBid());
                     lastReceivedBid = ((Offer) lastReceivedAction).getBid();
                 } else if (lastReceivedAction instanceof Comparison) {
-                    ourEstimatedProfile = ourEstimatedProfile.with(((Comparison) lastReceivedAction).getBid(), ((Comparison) lastReceivedAction).getWorse());
+                    //TODO after preventing same bid elicitation delete this if
+                    if(!ourEstimatedProfile.contains(((Comparison) lastReceivedAction).getBid()));
+                        ourEstimatedProfile = ourEstimatedProfile.with(((Comparison) lastReceivedAction).getBid(), ((Comparison) lastReceivedAction).getWorse());
+                    getReporter().log(Level.INFO, "---"+me+" Comparison done for bid: "+ ((Comparison) lastReceivedAction).getBid());
+                    getReporter().log(Level.INFO, "---"+me+" Entering myTurn after comparison");
                     myTurn();
+                    getReporter().log(Level.INFO, "---"+me+" Exit myTurn after comparison");
                 }
             } else if (info instanceof YourTurn) {
-                getReporter().log(Level.INFO, "---"+me+"  MY TURN  :"+lastReceivedBid);
+                getReporter().log(Level.INFO, "---"+me+"  Your Turn info has received with bid: " + lastReceivedBid);
                 myTurn();
+                getReporter().log(Level.INFO, "---"+me+" Exit myTurn after Your Turn info");
             } else if (info instanceof Finished) {
                 getReporter().log(Level.INFO, "Final outcome:" + info);
             }
@@ -130,6 +137,8 @@ public class MyAgent extends DefaultParty {
 
         else if(profileint.getProfile() instanceof PartialOrdering){
 
+            getReporter().log(Level.INFO, "---"+me+" Partial profile has received");
+
             PartialOrdering partialprofile = (PartialOrdering) profileint.getProfile();
 
             this.allbids = new AllBidsList(partialprofile.getDomain());
@@ -144,7 +153,9 @@ public class MyAgent extends DefaultParty {
             getReporter().log(Level.INFO,
                     "Ordered Bids Before Elcitation: " + orderedbids);
 
+            getReporter().log(Level.INFO, "---"+me+" Elicitation check started");
             checkElicitation();
+            getReporter().log(Level.INFO, "---"+me+" Elicitation check ended");
 
 
             //this.reservationImportanceRatio = this.getReservationRatio();
@@ -156,31 +167,42 @@ public class MyAgent extends DefaultParty {
 
         //TODO get elicitation cost as parameter
 
-        getReporter().log(Level.INFO, "---"+me+": Settings initialized");
     }
 
     private void myTurn() throws IOException {
+        getReporter().log(Level.INFO, "---"+me+" myTurn method is called");
         time = progress.get(System.currentTimeMillis());
         prevReceivedBid = counterOffer;
         counterOffer = lastReceivedBid;
         Action action = null;
+
+
+        getReporter().log(Level.INFO, "---"+me+" Elicitation check started");
         checkElicitation();
+        getReporter().log(Level.INFO, "---"+me+" Elicitation check ended");
 
         if(elicitBidList != null && elicitBidList.size() >= 0){
             // returns null action if elicity is done
+            getReporter().log(Level.INFO, "---"+me+" doElicitation started");
             action = doElicitation();
+            getReporter().log(Level.INFO, "---"+me+" doElicitation ended");
         }
 
         else {
+
             if (counterOffer != null) {
 
+                getReporter().log(Level.INFO, "---"+me+" Entered to strategy selection");
                 strategySelection();
+                getReporter().log(Level.INFO, "---"+me+" Exit the strategy selection");
 
 
 
+                getReporter().log(Level.INFO, "---"+me+" doWeEndTheNegotiation?");
                 //if not Accepted return null
                 action = doWeEndTheNegotiation();
 
+                getReporter().log(Level.INFO, "---"+me+" doWeAcceptTheOfferedBid?");
                 //if not Accepted return null
                 action = doWeAccept();
 
@@ -196,11 +218,14 @@ public class MyAgent extends DefaultParty {
         // TODO can't we do better than random?
         if (action == null){
 
+            getReporter().log(Level.INFO, "---"+me+" action was null, making an offer?");
             action = makeAnOffer();
+            getReporter().log(Level.INFO, "---"+me+" offer is set?");
 
             // TODO offer strategy
         }
 
+        getReporter().log(Level.INFO, "---"+me+" action is selected as: "+action);
         getConnection().send(action);
     }
 
@@ -226,23 +251,26 @@ public class MyAgent extends DefaultParty {
     }
 
     private Action doElicitation() throws IOException {
+
         Action action = null;
         if(elicitBidList.size() == 0){
+            getReporter().log(Level.INFO, "---"+me+" elicitationBidList size is 0");
             orderedbids = ourEstimatedProfile.getBids();
             this.impMap = new ImpMap(profileint.getProfile());
             this.impMap.update(ourEstimatedProfile);
 
-            getReporter().log(Level.INFO,
-                    "Ordered Bids After Elicitation: " + orderedbids);
+            getReporter().log(Level.INFO, "Ordered Bids After Elicitation: " + orderedbids);
 
             exploredBidRatio = BigDecimal.valueOf(orderedbids.size()).divide(new BigDecimal(allBidSize), 8, RoundingMode.HALF_UP);
             elicitBidList = null;
+            getReporter().log(Level.INFO, "---"+me+": Elicitation list is assigned as null");
             action = null;
         }
         else{
+            getReporter().log(Level.INFO, "---"+me+" Sending elicitation request");
             action = new ElicitComparison(me, (Bid) elicitBidList.get(0), ourEstimatedProfile.getBids());
             elicitBidList.remove(0);
-            lostElicitScore.subtract(elicitationCost);
+
         }
         return action;
     }
@@ -265,22 +293,33 @@ public class MyAgent extends DefaultParty {
 
 
         getReporter().log(Level.INFO, "----> Time :"+time+"  impconst:" + timeImportanceConstant);
+        getReporter().log(Level.INFO, "----> Bid importance for opponent :"+ oppImpMap.getImportance(counterOffer));
+        getReporter().log(Level.INFO, "----> Bid importance for me :"+ impMap.getImportance(counterOffer));
     }
 
     private void checkElicitation() throws IOException {
 
+        getReporter().log(Level.INFO, "---"+me+" Checking if we do elicitation");
+        getReporter().log(Level.INFO, "---"+me+" Lost Elicit Score: "+ lostElicitScore);
+        getReporter().log(Level.INFO, "---"+me+" Elicit Cost: "+ elicitationCost);
+        getReporter().log(Level.INFO, "---"+me+" Lost elicitBoundRatio: "+ elicitBoundRatio);
         int elicitNumber = elicitBoundRatio.subtract(lostElicitScore).divide(elicitationCost, 8, RoundingMode.HALF_UP).intValue();
         if(elicitNumber > 0){
+            elicitBidList = new ArrayList<>();
+            getReporter().log(Level.INFO, "---"+me+" We will do elicitation for n times:" + elicitNumber);
             for(int i = 0; i< elicitNumber; i++){
                 elicitBidList.add(randomBidGenerator());
+                lostElicitScore = lostElicitScore.add(elicitationCost);
                 //TODO add arguments
 
                 //TODO elimizdeki bid sayısı belli bir orandan düşükse elimizde var olan bid sayısı
                 //kadar BİLİNMEYEN özellikler üzerinden random bidler ile elicitation yap
             }
+            getReporter().log(Level.INFO, "---"+me+": Elicitation list is assigned");
         }
+        getReporter().log(Level.INFO, "---"+me+": Elicitation list is not assigned");
 
-        getReporter().log(Level.INFO, "---"+me+": Elicitation list is assigned");
+
 
     }
 
