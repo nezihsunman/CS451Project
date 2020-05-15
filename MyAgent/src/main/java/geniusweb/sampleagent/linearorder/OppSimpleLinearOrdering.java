@@ -20,11 +20,11 @@ public class OppSimpleLinearOrdering {
     }
 
     public BigDecimal getUtility(Bid bid) {
-        if (bidsInOrder.size() < 2 || !bidsInOrder.contains(bid)) {
+        if (!bidsInOrder.contains(bid)) {
             return BigDecimal.ZERO;
         }
         // using 8 decimals, we have to pick something here (order/size)^2
-        return new BigDecimal(bidsInOrder.indexOf(bid)).divide(new BigDecimal((bidsInOrder.size() - 1)), 8, RoundingMode.HALF_UP).pow(2);
+        return new BigDecimal(bidsInOrder.indexOf(bid)+1).divide(new BigDecimal((bidsInOrder.size())), 8, RoundingMode.HALF_UP).pow(2);
     }
 
 
