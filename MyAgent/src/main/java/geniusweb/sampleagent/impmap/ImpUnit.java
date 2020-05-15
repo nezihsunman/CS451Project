@@ -11,7 +11,7 @@ import java.util.Comparator;
 public class ImpUnit {
 	public Value valueOfIssue;
 	public int count = 0;
-	public int importanceWeight = 0; // counts #occurences of this value.
+	public double importanceWeight = 0; // counts #occurences of this value.
 
 	public ImpUnit(Value value) {
 		this.valueOfIssue = value;
