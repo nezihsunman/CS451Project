@@ -35,22 +35,40 @@ public class ImpMap {
 
 		List<Bid> sortedBids = estimatedProfile.getBids();
 
-		for(int bidIndex = 0; bidIndex < sortedBids.size(); bidIndex++){
-			Bid currentBid = sortedBids.get(bidIndex);
-			Bid nextBid = null;
-			if(bidIndex < sortedBids.size() - 1)
-				nextBid = sortedBids.get(bidIndex + 1);
+		for (String issue : issueImpMap.keySet()) {
+			double issueImp = 0;
+			List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
+			for (ImpUnit currentUnit : currentIssueList) {
+				//her bir issue value
+				int prevIndex = -1;
+				for(Bid currentBid: sortedBids){
+					if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
+						if(prevIndex == -1){
+							prevIndex = sortedBids.indexOf(currentBid);
+						}
+						else{
+							issueImp += sortedBids.indexOf(currentBid) - prevIndex;
+							prevIndex = sortedBids.indexOf(currentBid);
+						}
+					}
+				}
+			}
+			issueImpMap.put(issue, issueImp);
+		}
+
+		double maxImp = 0;
+		for (String issue : issueImpMap.keySet()) {
+			if(issueImpMap.get(issue) > maxImp)
+				maxImp = issueImpMap.get(issue);
+		}
+		for (String issue : issueImpMap.keySet()) {
+			issueImpMap.put(issue, maxImp - issueImpMap.get(issue)) ;
+		}
+
+		for(Bid currentBid: sortedBids){
 			// if bid is closer to worse, than it is not important
 			double bidImportance = estimatedProfile.getUtility(currentBid).doubleValue();
 			for (String issue : currentBid.getIssues()) {
-
-				if(nextBid != null){
-					if(currentBid.getValue(issue).equals(nextBid.getValue(issue)))
-						issueImpMap.put(issue, issueImpMap.get(issue) + bidImportance);
-				}
-				else
-					issueImpMap.put(issue, issueImpMap.get(issue) + bidImportance);
-
 				List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
 				for (ImpUnit currentUnit : currentIssueList) {
 					if (currentUnit.valueOfIssue
