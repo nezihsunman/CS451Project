@@ -41,7 +41,6 @@ import static java.lang.Math.pow;
  */
 public class MyAgent extends DefaultParty {
 
-    private static final BigDecimal N09 = new BigDecimal("0.9");
     private final Random random = new Random();
 
     private Bid lastReceivedBid = null;
@@ -63,8 +62,6 @@ public class MyAgent extends DefaultParty {
     private ImpMap impMap = null;
     private OppImpMap oppImpMap = null;
 
-
-    private double offerLowerRatio = 1;
 
     //between 0 and 1
     private double timeImportanceConstant = 1;
@@ -220,13 +217,11 @@ public class MyAgent extends DefaultParty {
         return new Offer(me, ourEstimatedProfile.getBids().get(ourEstimatedProfile.getBids().size()-1));
     }
 
+    //TODO COMPLETE
     private Action doWeAccept() {
 
-        if (ourEstimatedProfile.contains(lastReceivedBid)) {
-            if (isGood(lastReceivedBid)) {
+        if (false)
                 return new Accept(me, lastReceivedBid);
-            }
-        }
         return null;
     }
 
@@ -235,7 +230,7 @@ public class MyAgent extends DefaultParty {
         if(elicitBidList.size() == 0){
             orderedbids = ourEstimatedProfile.getBids();
             this.impMap = new ImpMap(profileint.getProfile());
-            this.impMap.update(orderedbids);
+            this.impMap.update(ourEstimatedProfile);
 
             getReporter().log(Level.INFO,
                     "Ordered Bids After Elicitation: " + orderedbids);
@@ -271,17 +266,6 @@ public class MyAgent extends DefaultParty {
 
         getReporter().log(Level.INFO, "----> Time :"+time+"  impconst:" + timeImportanceConstant);
     }
-
-
-    private boolean isGood(Bid bid) {
-        if (bid == null) {
-            return false;
-        }
-
-        return ourEstimatedProfile.getUtility(bid).compareTo(N09) >= 0;
-    }
-
-
 
     private void checkElicitation() throws IOException {
 

@@ -21,7 +21,7 @@ public class SimpleLinearOrdering implements UtilitySpace {
     private final Domain domain;
     private final List<Bid> bids; // worst bid first, best bid last.
 
-    SimpleLinearOrdering(Profile profile) {
+    public SimpleLinearOrdering(Profile profile) {
         this(profile.getDomain(), getSortedBids(profile));
     }
 

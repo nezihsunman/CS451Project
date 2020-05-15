@@ -11,7 +11,7 @@ public class OppSimpleLinearOrdering {
 
     private List<Bid> bidsInOrder; // worst (proposed after) bid first, best bid last.
 
-    OppSimpleLinearOrdering() {
+    public OppSimpleLinearOrdering() {
         this.bidsInOrder = new ArrayList<>();
     }
 

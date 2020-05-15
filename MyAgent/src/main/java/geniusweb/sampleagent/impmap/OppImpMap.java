@@ -14,27 +14,18 @@ import java.util.List;
 public class OppImpMap {
 
         private Domain domain;
-        HashMap<String, List<OppImpUnit>> issueValueImpMap = new HashMap<>();
-        HashMap<String,Double> issueImpMap = new HashMap<>();
+        HashMap<String, List<OppImpUnit>> issueValueImpMap;
+        HashMap<String,Double> issueImpMap;
 
         // Importance map
         public OppImpMap(Profile profile) {
-            super();
             this.domain = profile.getDomain();
-            // Create empty my import map and opponent's value map
-            for (String issue : domain.getIssues()) {
-                issueImpMap.put(issue, 0.0);
-                ValueSet values = domain.getValues(issue);
-                List<OppImpUnit> issueImpUnit = new ArrayList<>();
-                for (Value value : values) {
-                    issueImpUnit.add(new OppImpUnit(value));
-                }
-                issueValueImpMap.put(issue, issueImpUnit);
-            }
+            renewMaps();
         }
 
 
         public void update(OppSimpleLinearOrdering opponentEstimatedProfile) {
+            renewMaps();
             List<Bid> opponentSortedBids = opponentEstimatedProfile.getSortedBids();
             for(int bidIndex = 0; bidIndex < opponentSortedBids.size(); bidIndex++){
                 Bid currentBid = opponentSortedBids.get(bidIndex);
@@ -61,6 +52,21 @@ public class OppImpMap {
                         }
                     }
                 }
+            }
+        }
+
+        private void renewMaps(){
+            issueValueImpMap = new HashMap<>();
+            issueImpMap = new HashMap<>();
+            // Create empty my import map and opponent's value map
+            for (String issue : domain.getIssues()) {
+                issueImpMap.put(issue, 0.0);
+                ValueSet values = domain.getValues(issue);
+                List<OppImpUnit> issueImpUnit = new ArrayList<>();
+                for (Value value : values) {
+                    issueImpUnit.add(new OppImpUnit(value));
+                }
+                issueValueImpMap.put(issue, issueImpUnit);
             }
         }
 
