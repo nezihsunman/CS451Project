@@ -70,11 +70,11 @@ public class SimpleLinearOrdering implements UtilitySpace {
 
     @Override
     public BigDecimal getUtility(Bid bid) {
-        if (bids.size() < 2 || !bids.contains(bid)) {
+        if (!bids.contains(bid)) {
             return BigDecimal.ZERO;
         }
         // using 8 decimals, we have to pick something here
-        return new BigDecimal(bids.indexOf(bid)).divide(new BigDecimal((bids.size() - 1)), 8, RoundingMode.HALF_UP);
+        return new BigDecimal(bids.indexOf(bid)+1).divide(new BigDecimal((bids.size())), 8, RoundingMode.HALF_UP);
     }
 
     /**
