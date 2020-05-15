@@ -1,4 +1,4 @@
-package geniusweb.sampleagent;
+package geniusweb.sampleagent.linearorder;
 
 import geniusweb.issuevalue.Bid;
 import geniusweb.issuevalue.Domain;

@@ -1,0 +1,90 @@
+package geniusweb.sampleagent.impmap;
+
+import geniusweb.issuevalue.Bid;
+import geniusweb.issuevalue.Domain;
+import geniusweb.issuevalue.Value;
+import geniusweb.issuevalue.ValueSet;
+import geniusweb.profile.Profile;
+import geniusweb.sampleagent.linearorder.OppSimpleLinearOrdering;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+public class OppImpMap {
+
+        private Domain domain;
+        HashMap<String, List<OppImpUnit>> issueValueImpMap = new HashMap<>();
+        HashMap<String,Double> issueImpMap = new HashMap<>();
+
+        // Importance map
+        public OppImpMap(Profile profile) {
+            super();
+            this.domain = profile.getDomain();
+            // Create empty my import map and opponent's value map
+            for (String issue : domain.getIssues()) {
+                issueImpMap.put(issue, 0.0);
+                ValueSet values = domain.getValues(issue);
+                List<OppImpUnit> issueImpUnit = new ArrayList<>();
+                for (Value value : values) {
+                    issueImpUnit.add(new OppImpUnit(value));
+                }
+                issueValueImpMap.put(issue, issueImpUnit);
+            }
+        }
+
+
+        public void update(OppSimpleLinearOrdering opponentEstimatedProfile) {
+            List<Bid> opponentSortedBids = opponentEstimatedProfile.getSortedBids();
+            for(int bidIndex = 0; bidIndex < opponentSortedBids.size(); bidIndex++){
+                Bid currentBid = opponentSortedBids.get(bidIndex);
+                Bid nextBid = null;
+                if(bidIndex < opponentSortedBids.size() - 1)
+                    nextBid = opponentSortedBids.get(bidIndex + 1);
+                // if bid is send by oppenent closer to the start time, then importance is high
+                double bidImportance = opponentEstimatedProfile.getUtility(currentBid).doubleValue();
+                for (String issue : currentBid.getIssues()) {
+
+                    if(nextBid != null){
+                        if(currentBid.getValue(issue).equals(nextBid.getValue(issue)))
+                            issueImpMap.put(issue, issueImpMap.get(issue) + bidImportance);
+                    }
+                    else
+                        issueImpMap.put(issue, issueImpMap.get(issue) + bidImportance);
+
+                    List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
+                    for (OppImpUnit currentUnit : currentIssueList) {
+                        if (currentUnit.valueOfIssue
+                                .equals(currentBid.getValue(issue))) {
+                            currentUnit.importanceWeight += bidImportance;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        //TODO use in offer checking opponent [0,1]
+        public double getImportance(Bid bid) {
+            double bidImportance = 0.0;
+            double sumIssueImp = 0.0;
+            for (String issue : bid.getIssues()) {
+                sumIssueImp += issueImpMap.get(issue);
+            }
+
+            for (String issue : bid.getIssues()){
+                double sumIssueValueImp = 0.0;
+                List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
+                for (OppImpUnit currentUnit : currentIssueList) {
+                    sumIssueValueImp += currentUnit.importanceWeight;
+                }
+                for (OppImpUnit currentUnit : currentIssueList) {
+                    if (currentUnit.valueOfIssue.equals(bid.getValue(issue))) {
+                        bidImportance += (issueImpMap.get(issue)/sumIssueImp) * (currentUnit.importanceWeight / sumIssueValueImp);
+                        break;
+                    }
+                }
+            }
+            return bidImportance;
+        }
+}
