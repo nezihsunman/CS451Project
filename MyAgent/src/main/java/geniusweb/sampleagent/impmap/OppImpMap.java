@@ -45,9 +45,8 @@ public class OppImpMap {
 
                     List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
                     for (OppImpUnit currentUnit : currentIssueList) {
-                        if (currentUnit.valueOfIssue
-                                .equals(currentBid.getValue(issue))) {
-                            currentUnit.importanceWeight += bidImportance;
+                        if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
+                                currentUnit.importanceWeight += bidImportance;
                             break;
                         }
                     }

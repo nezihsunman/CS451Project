@@ -74,7 +74,8 @@ public class SimpleLinearOrdering implements UtilitySpace {
             return BigDecimal.ZERO;
         }
         // using 8 decimals, we have to pick something here
-        return new BigDecimal(bids.indexOf(bid)+1).divide(new BigDecimal((bids.size())), 8, RoundingMode.HALF_UP);
+        return new BigDecimal(bids.indexOf(bid)+1).divide(new BigDecimal((bids.size())), 8, RoundingMode.HALF_UP).pow(2);
+
     }
 
     /**

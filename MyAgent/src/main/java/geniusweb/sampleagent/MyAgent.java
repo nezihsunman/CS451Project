@@ -66,13 +66,13 @@ public class MyAgent extends DefaultParty {
     //between 0 and 1
     private double timeImportanceConstant = 1;
 
-    private static BigInteger allBidSize = new BigInteger("0");
-    private static BigDecimal lostElicitScore = new BigDecimal("0.00");
-    private static BigDecimal defaultScore = new BigDecimal("0.00");
+    private BigInteger allBidSize = new BigInteger("0");
+    private BigDecimal lostElicitScore = new BigDecimal("0.00");
+    private BigDecimal defaultScore = new BigDecimal("0.00");
     //Set default as 0.1
-    private static BigDecimal elicitationCost = new BigDecimal("0.001");
-    private static BigDecimal elicitBoundRatio = new BigDecimal("0.02");
-    private static BigDecimal exploredBidRatio = new BigDecimal("0.00");
+    private BigDecimal elicitationCost = new BigDecimal("0.1");
+    private BigDecimal elicitBoundRatio = new BigDecimal("0.2");
+    private BigDecimal exploredBidRatio = new BigDecimal("0.00");
     //TODO given bid boundlarını hesaba kat
 
     public MyAgent() { }
@@ -143,7 +143,7 @@ public class MyAgent extends DefaultParty {
 
             this.allbids = new AllBidsList(partialprofile.getDomain());
             this.allBidSize = allbids.size();
-            this.impMap = new ImpMap(partialprofile);
+            this.impMap = new ImpMap(partialprofile, getReporter());
             this.opponentEstimatedProfile = new OppSimpleLinearOrdering();
             this.oppImpMap = new OppImpMap(partialprofile);
             this.ourEstimatedProfile = new SimpleLinearOrdering(profileint.getProfile());
@@ -238,8 +238,9 @@ public class MyAgent extends DefaultParty {
 
     private Action makeAnOffer() {
 
+        int num = (int)((ourEstimatedProfile.getBids().size()-1) * (1-time));
         //TODO offer strategy
-        return new Offer(me, ourEstimatedProfile.getBids().get(ourEstimatedProfile.getBids().size()-1));
+        return new Offer(me, ourEstimatedProfile.getBids().get(num));
     }
 
     //TODO COMPLETE
@@ -256,7 +257,6 @@ public class MyAgent extends DefaultParty {
         if(elicitBidList.size() == 0){
             getReporter().log(Level.INFO, "---"+me+" elicitationBidList size is 0");
             orderedbids = ourEstimatedProfile.getBids();
-            this.impMap = new ImpMap(profileint.getProfile());
             this.impMap.update(ourEstimatedProfile);
 
             getReporter().log(Level.INFO, "Ordered Bids After Elicitation: " + orderedbids);
@@ -287,6 +287,7 @@ public class MyAgent extends DefaultParty {
     private void strategySelection(){
 
         this.timeImportanceConstant = pow(2 * (0.5 - this.time), 2);
+
         this.opponentEstimatedProfile.updateBid(counterOffer);
         this.oppImpMap.update(opponentEstimatedProfile);
 
