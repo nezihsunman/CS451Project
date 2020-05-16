@@ -26,78 +26,16 @@ public class ImpMap {
 	HashMap<String, List<ImpUnit>> issueValueImpMap;
 	HashMap<String,Double> issueImpMap;
 
-	Reporter reporter;
-
 
 	// Importance map
-	public ImpMap(Profile profile, Reporter reporter) {
+	public ImpMap(Profile profile) {
 		this.domain = profile.getDomain();
-		this.reporter = reporter;
 		renewMaps();
 	}
 
 
 	public void update(SimpleLinearOrdering estimatedProfile) {
 		renewMaps();
-
-		/*List<Bid> sortedBids = estimatedProfile.getBids();
-
-		for (String issue : issueImpMap.keySet()) {
-			double issueImp = 0;
-			List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
-			int issueValueCount = currentIssueList.size();
-			for (ImpUnit currentUnit : currentIssueList) {
-				int count = 0;
-				//her bir issue value
-				int prevIndex = -1;
-				double tmpImp = 0.0;
-				for(int bidIndex = 0; bidIndex < sortedBids.size(); bidIndex++){
-					Bid currentBid = sortedBids.get(bidIndex);
-					if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
-						if(prevIndex == -1){
-							prevIndex = bidIndex;
-						}
-						else{
-							tmpImp += bidIndex - prevIndex;
-							prevIndex = bidIndex;
-							count++;
-						}
-					}
-				}
-				issueImp += tmpImp/count;
-			}
-			issueImp /= issueValueCount;
-			issueImpMap.put(issue, 1/issueImp);
-		}
-
-		/*double maxImp = 0;
-		double minImp = Double.MAX_VALUE;
-		for (String issue : issueImpMap.keySet()) {
-			if(issueImpMap.get(issue) > maxImp)
-				maxImp = issueImpMap.get(issue);
-			if(issueImpMap.get(issue) < minImp)
-				minImp = issueImpMap.get(issue);
-		}
-
-		for (String issue : issueImpMap.keySet()) {
-			issueImpMap.put(issue, maxImp + minImp - issueImpMap.get(issue)) ;
-		} /*
-
-		for(Bid currentBid: sortedBids){
-			// if bid is closer to worse, than it is not important
-			double bidImportance = estimatedProfile.getUtility(currentBid).doubleValue();
-			for (String issue : currentBid.getIssues()) {
-				List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
-				for (ImpUnit currentUnit : currentIssueList) {
-					if (currentUnit.valueOfIssue
-							.equals(currentBid.getValue(issue))) {
-						currentUnit.importanceWeight += bidImportance;
-						currentUnit.count += 1;
-						break;
-					}
-				}
-			}
-		}*/
 
 		List<Bid> sortedBids = estimatedProfile.getBids();
 
@@ -163,28 +101,6 @@ public class ImpMap {
 
 
 	public double getImportance(Bid bid) {
-		/*double bidImportance = 0.0;
-		double sumIssueImp = 0.0;
-		for (String issue : bid.getIssues()) {
-				sumIssueImp += issueImpMap.get(issue);
-		}
-
-		for (String issue : bid.getIssues()){
-			double maxIssueValueImpAvg = 0.0;
-			List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
-			for (ImpUnit currentUnit : currentIssueList) {
-				if(maxIssueValueImpAvg < currentUnit.importanceWeight/ currentUnit.count)
-					maxIssueValueImpAvg = currentUnit.importanceWeight / currentUnit.count;
-			}
-			for (ImpUnit currentUnit : currentIssueList) {
-				if (currentUnit.valueOfIssue.equals(bid.getValue(issue))) {
-					bidImportance += ((issueImpMap.get(issue) / sumIssueImp)) * ((currentUnit.importanceWeight / currentUnit.count) / maxIssueValueImpAvg);
-					break;
-				}
-			}
-		}
-		return bidImportance;*/
-
 
 		double bidImportance = 0.0;
 		double sumIssueImp = 0.0;
@@ -196,11 +112,6 @@ public class ImpMap {
 			List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
 			for (ImpUnit currentUnit : currentIssueList) {
 				if (currentUnit.valueOfIssue.equals(bid.getValue(issue))) {
-
-					reporter.log(Level.INFO, "&&&issueImp: " + issueImpMap.get(issue));
-					reporter.log(Level.INFO, "&&&sumIssueImp: " + sumIssueImp);
-					reporter.log(Level.INFO, "&&&currentUnitImp: " + currentUnit.importanceWeight);
-
 					bidImportance += (issueImpMap.get(issue)/sumIssueImp) * currentUnit.importanceWeight;
 					break;
 				}

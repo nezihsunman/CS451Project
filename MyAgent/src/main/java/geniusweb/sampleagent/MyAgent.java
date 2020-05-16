@@ -26,6 +26,7 @@ import java.math.RoundingMode;
 import java.util.*;
 import java.util.logging.Level;
 
+import static java.lang.Math.min;
 import static java.lang.Math.pow;
 
 /**
@@ -64,14 +65,18 @@ public class MyAgent extends DefaultParty {
 
 
     //between 0 and 1
-    private double timeImportanceConstant = 1;
+    private double acceptanceLowerBound = 1;
 
     private BigInteger allBidSize = new BigInteger("0");
     private BigDecimal lostElicitScore = new BigDecimal("0.00");
-    private BigDecimal defaultScore = new BigDecimal("0.00");
+
+
+    private BigDecimal reservationImportanceRatio = new BigDecimal("0.00");
+
+
     //Set default as 0.1
     private BigDecimal elicitationCost = new BigDecimal("0.1");
-    private BigDecimal elicitBoundRatio = new BigDecimal("0.2");
+    private BigDecimal elicitBoundRatio = new BigDecimal("0.0");
     private BigDecimal exploredBidRatio = new BigDecimal("0.00");
 
     public MyAgent() { }
@@ -94,7 +99,6 @@ public class MyAgent extends DefaultParty {
     public void notifyChange(Inform info) {
         try {
             if (info instanceof Settings) {
-                getReporter().log(Level.INFO, "--- Setting is initializing");
                 Settings settings = (Settings) info;
                 init(settings);
                 getReporter().log(Level.INFO, "---"+me+" Setting initialization is done");
@@ -114,6 +118,9 @@ public class MyAgent extends DefaultParty {
                 getReporter().log(Level.INFO, "---"+me+"  Your Turn info has received with bid: " + lastReceivedBid);
                 myTurn();
                 getReporter().log(Level.INFO, "---"+me+" Exit myTurn after Your Turn info");
+                if (progress instanceof ProgressRounds) {
+                    progress = ((ProgressRounds) progress).advance();
+                }
             } else if (info instanceof Finished) {
                 getReporter().log(Level.INFO, "Final outcome:" + info);
             }
@@ -140,7 +147,7 @@ public class MyAgent extends DefaultParty {
 
             this.allbids = new AllBidsList(partialprofile.getDomain());
             this.allBidSize = allbids.size();
-            this.impMap = new ImpMap(partialprofile, getReporter());
+            this.impMap = new ImpMap(partialprofile);
             this.opponentEstimatedProfile = new OppSimpleLinearOrdering();
             this.oppImpMap = new OppImpMap(partialprofile);
             this.ourEstimatedProfile = new SimpleLinearOrdering(profileint.getProfile());
@@ -155,14 +162,12 @@ public class MyAgent extends DefaultParty {
             getReporter().log(Level.INFO, "---"+me+" Elicitation check ended");
 
 
-            //this.reservationImportanceRatio = this.getReservationRatio();
+            this.reservationImportanceRatio = this.getReservationRatio();
         }
         else{
             throw new UnsupportedOperationException(
                     "Only DefaultPartialOrdering supported");
         }
-
-        //TODO get elicitation cost as parameter
 
     }
 
@@ -197,15 +202,12 @@ public class MyAgent extends DefaultParty {
 
                 getReporter().log(Level.INFO, "---"+me+" doWeEndTheNegotiation?");
                 //if not Accepted return null
-                action = doWeEndTheNegotiation();
+                action = doWeEndTheNegotiation(action);
 
                 getReporter().log(Level.INFO, "---"+me+" doWeAcceptTheOfferedBid?");
                 //if not Accepted return null
                 action = doWeAccept();
 
-                if (progress instanceof ProgressRounds) {
-                    progress = ((ProgressRounds) progress).advance();
-                }
 
             }
 
@@ -222,25 +224,43 @@ public class MyAgent extends DefaultParty {
         getConnection().send(action);
     }
 
-    private Action doWeEndTheNegotiation() {
+    private Action doWeEndTheNegotiation(Action action) {
         //TODO end check
         if(false)
             return new EndNegotiation(me);
         return null;
     }
 
-    private Action makeAnOffer() {
+    private Action makeAnOffer() throws IOException {
 
         int num = (int)((ourEstimatedProfile.getBids().size()-1) * (1-time));
         //TODO offer strategy
-        return new Offer(me, ourEstimatedProfile.getBids().get(num));
+
+        //ourOffer = ourEstimatedProfile.getBids().get(num);
+        while(true){
+            Bid randomBid = randomBidGenerator();
+            if(impMap.getImportance(randomBid) > 0.9){
+                 // TODO   -->    oppImpMap.getImportance(randomBid) < 0.6 + (1-acceptanceLowerBound)
+                ourOffer = randomBid;
+                break;
+            }
+        }
+        return new Offer(me, ourOffer);
     }
 
     //TODO COMPLETE
     private Action doWeAccept() {
+        //if(this.timeImportanceConstant)
+        if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound){
+            getReporter().log(Level.INFO, "---"+me+" I am going to acceptt if better for me");
+        }
+        if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound
+                && oppImpMap.getImportance(lastReceivedBid) < impMap.getImportance(lastReceivedBid)){
 
-        if (false)
-                return new Accept(me, lastReceivedBid);
+            getReporter().log(Level.INFO, "---"+me+" I am acceptt the bid");
+
+            return new Accept(me, lastReceivedBid);
+        }
         return null;
     }
 
@@ -279,14 +299,15 @@ public class MyAgent extends DefaultParty {
 
     private void strategySelection(){
 
-        this.timeImportanceConstant = pow(2 * (0.5 - this.time), 2);
+        // 6.6 means 0.8 in time 1
+        this.acceptanceLowerBound = 1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 6.6);
 
         this.opponentEstimatedProfile.updateBid(counterOffer);
         this.oppImpMap.update(opponentEstimatedProfile);
 
 
 
-        getReporter().log(Level.INFO, "----> Time :"+time+"  impconst:" + timeImportanceConstant);
+        getReporter().log(Level.INFO, "----> Time :"+time+"  impconst:" + acceptanceLowerBound);
         getReporter().log(Level.INFO, "----> "+time*100+"  Bid importance for opponent :"+ oppImpMap.getImportance(counterOffer));
         getReporter().log(Level.INFO, "---->"+time*100+"  Bid importance for me :"+ impMap.getImportance(counterOffer));
     }
@@ -303,6 +324,7 @@ public class MyAgent extends DefaultParty {
             getReporter().log(Level.INFO, "---"+me+" We will do elicitation for n times:" + elicitNumber);
             for(int i = 0; i< elicitNumber; i++){
                 elicitBidList.add(randomBidGenerator());
+                //TODO random listede yoksa oluştur
                 lostElicitScore = lostElicitScore.add(elicitationCost);
             }
             getReporter().log(Level.INFO, "---"+me+": Elicitation list is assigned");
