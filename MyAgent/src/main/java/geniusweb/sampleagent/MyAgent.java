@@ -294,8 +294,8 @@ public class MyAgent extends DefaultParty {
 
 
         getReporter().log(Level.INFO, "----> Time :"+time+"  impconst:" + timeImportanceConstant);
-        getReporter().log(Level.INFO, "----> Bid importance for opponent :"+ oppImpMap.getImportance(counterOffer));
-        getReporter().log(Level.INFO, "----> Bid importance for me :"+ impMap.getImportance(counterOffer));
+        getReporter().log(Level.INFO, "----> "+time*100+"  Bid importance for opponent :"+ oppImpMap.getImportance(counterOffer));
+        getReporter().log(Level.INFO, "---->"+time*100+"  Bid importance for me :"+ impMap.getImportance(counterOffer));
     }
 
     private void checkElicitation() throws IOException {

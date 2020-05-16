@@ -52,6 +52,20 @@ public class OppImpMap {
                     }
                 }
             }
+            for (String issue : issueImpMap.keySet()) {
+                List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
+                double maxIssueValue = 0.0;
+                for (OppImpUnit currentUnit : currentIssueList) {
+                    if (currentUnit.importanceWeight > maxIssueValue) {
+                        maxIssueValue = currentUnit.importanceWeight;
+                    }
+                }
+                for (OppImpUnit currentUnit : currentIssueList) {
+                    currentUnit.importanceWeight /= maxIssueValue;
+                }
+            }
+
+
         }
 
         private void renewMaps(){
@@ -78,14 +92,10 @@ public class OppImpMap {
             }
 
             for (String issue : bid.getIssues()){
-                double sumIssueValueImp = 0.0;
                 List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
                 for (OppImpUnit currentUnit : currentIssueList) {
-                    sumIssueValueImp += currentUnit.importanceWeight;
-                }
-                for (OppImpUnit currentUnit : currentIssueList) {
                     if (currentUnit.valueOfIssue.equals(bid.getValue(issue))) {
-                        bidImportance += (issueImpMap.get(issue)/sumIssueImp) * (currentUnit.importanceWeight / sumIssueValueImp);
+                        bidImportance += (issueImpMap.get(issue)/sumIssueImp) * currentUnit.importanceWeight;
                         break;
                     }
                 }
