@@ -83,7 +83,6 @@ public class OppImpMap {
             }
         }
 
-        //TODO use in offer checking opponent [0,1]
         public double getImportance(Bid bid) {
             double bidImportance = 0.0;
             double sumIssueImp = 0.0;
