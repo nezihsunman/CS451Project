@@ -32,7 +32,7 @@ public class OppImpMap {
                 Bid nextBid = null;
                 if(bidIndex < opponentSortedBids.size() - 1)
                     nextBid = opponentSortedBids.get(bidIndex + 1);
-                // if bid is send by oppenent closer to the start time, then importance is high
+                // if bid is send by opponent closer to the start time, then importance is high
                 double bidImportance = opponentEstimatedProfile.getUtility(currentBid).doubleValue();
                 for (String issue : currentBid.getIssues()) {
 
@@ -71,7 +71,7 @@ public class OppImpMap {
         private void renewMaps(){
             issueValueImpMap = new HashMap<>();
             issueImpMap = new HashMap<>();
-            // Create empty my import map and opponent's value map
+            // Create empty importance map
             for (String issue : domain.getIssues()) {
                 issueImpMap.put(issue, 0.0);
                 ValueSet values = domain.getValues(issue);
@@ -89,7 +89,6 @@ public class OppImpMap {
             for (String issue : bid.getIssues()) {
                 sumIssueImp += issueImpMap.get(issue);
             }
-
             for (String issue : bid.getIssues()){
                 List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
                 for (OppImpUnit currentUnit : currentIssueList) {

@@ -23,21 +23,19 @@ public class OppSimpleLinearOrdering {
         if (!bidsInOrder.contains(bid)) {
             return BigDecimal.ZERO;
         }
-        // using 8 decimals, we have to pick something here (order/size)^2
+        // (order/size)^2
         return new BigDecimal(bidsInOrder.indexOf(bid)+1).divide(new BigDecimal((bidsInOrder.size())), 8, RoundingMode.HALF_UP).pow(2);
     }
-
 
     public boolean contains(Bid bid) {
         return bidsInOrder.contains(bid);
     }
 
-
     // if a bid is not changing at first, it means it is important for opponent,
-    // bid is going to be concaded after a while thus importance decreases
+    // bid is going to be conceded after a while thus importance decreases
     public void updateBid(Bid bid) {
         if(!contains(bid))
-            //add at the beginning of the array if not proposed previously
+            //add at the beginning of the array if not offered in past
             this.bidsInOrder.add(0, bid);
     }
 }

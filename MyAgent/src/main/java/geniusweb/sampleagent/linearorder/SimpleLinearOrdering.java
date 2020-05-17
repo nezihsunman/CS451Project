@@ -12,10 +12,8 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-/**
- * A simple list of bids, but all bids are fully ordered (better or worse than
- * other bids in the list).
- */
+/*A simple list of bids, but all bids are fully ordered (better or worse than
+  other bids in the list).*/
 public class SimpleLinearOrdering implements UtilitySpace {
 
     private final Domain domain;
@@ -25,29 +23,19 @@ public class SimpleLinearOrdering implements UtilitySpace {
         this(profile.getDomain(), getSortedBids(profile));
     }
 
-    /**
-     * @param domain
-     * @param bids   a list of bids, ordered from lowest to highest util. The
-     *               first bid will have utility 0, the last utility 1. If only
-     *               0 or 1 bid in the list, or if the bid is not known, it will
-     *               have utility 0.
-     */
     SimpleLinearOrdering(Domain domain, List<Bid> bids) {
         this.domain = domain;
         this.bids = bids;
     }
 
-    /**
-     * @param profile
-     * @return a list of bids in the profile sorted from low to high utility.
-     */
+    /*a list of bids in the profile sorted from low to high utility.*/
     private static List<Bid> getSortedBids(Profile profile) {
         if (!(profile instanceof DefaultPartialOrdering)) {
             throw new UnsupportedOperationException("Only DefaultPartialOrdering supported");
         }
         DefaultPartialOrdering prof = (DefaultPartialOrdering) profile;
         List<Bid> bidslist = prof.getBids();
-        // NOTE sort defaults to ascending order, this is missing in docs.
+        // NOTE sort defaults to ascending order
         bidslist.sort((b1, b2) -> prof.isPreferredOrEqual(b1, b2) ? 1 : -1);
 
         return bidslist;
@@ -73,33 +61,22 @@ public class SimpleLinearOrdering implements UtilitySpace {
         if (!bids.contains(bid)) {
             return BigDecimal.ZERO;
         }
-        // using 8 decimals, we have to pick something here
         return new BigDecimal(bids.indexOf(bid)+1).divide(new BigDecimal((bids.size())), 8, RoundingMode.HALF_UP).pow(2);
-
     }
 
-    /**
-     * @param bid
-     * @return true iff bid is contained in this ordering
-     */
+    /*true iff bid is contained in this ordering*/
     public boolean contains(Bid bid) {
         return bids.contains(bid);
     }
 
-    /**
-     * @return list of all bids in the current ordering.
-     */
+    /*list of all bids in the current ordering.*/
     public List<Bid> getBids() {
         return Collections.unmodifiableList(bids);
     }
 
-    /**
-     * @param bid       a new bid to be inserted
-     * @param worseBids all bids that are worse than this bid.
-     * @return a SimpleLinearOrdering, updated with the given comparison. Thee
-     * bid will be inserted after the first bid that is not worse than
-     * bid.
-     */
+    /*SimpleLinearOrdering, updated with the given comparison. Thee
+    bid will be inserted after the first bid that is not worse than
+    bid.*/
     public SimpleLinearOrdering with(Bid bid, List<Bid> worseBids) {
         int n = 0;
         while (n < bids.size() && worseBids.contains(bids.get(n))) {

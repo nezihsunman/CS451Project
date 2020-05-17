@@ -6,33 +6,20 @@ import geniusweb.issuevalue.Value;
 import geniusweb.issuevalue.ValueSet;
 import geniusweb.profile.Profile;
 import geniusweb.sampleagent.linearorder.SimpleLinearOrdering;
-import tudelft.utilities.logging.Reporter;
 
-import java.lang.annotation.Repeatable;
-import java.lang.reflect.Array;
 import java.util.*;
-import java.util.logging.Level;
 
-import static java.lang.Math.pow;
-
-/**
- * Importance map. One is created for each party. The key (String) is the issue
- * and value is list of Importances of the values.
- *
- */
-@SuppressWarnings("serial")
 public class ImpMap {
+
 	private Domain domain;
 	HashMap<String, List<ImpUnit>> issueValueImpMap;
 	HashMap<String,Double> issueImpMap;
-
 
 	// Importance map
 	public ImpMap(Profile profile) {
 		this.domain = profile.getDomain();
 		renewMaps();
 	}
-
 
 	public void update(SimpleLinearOrdering estimatedProfile) {
 		renewMaps();
@@ -44,7 +31,7 @@ public class ImpMap {
 			Bid nextBid = null;
 			if(bidIndex < sortedBids.size() - 1)
 				nextBid = sortedBids.get(bidIndex + 1);
-			// if bid is send by oppenent closer to the start time, then importance is high
+			// If bid is send by opponent closer to the start time, then importance is set to high
 			double bidImportance = estimatedProfile.getUtility(currentBid).doubleValue();
 			for (String issue : currentBid.getIssues()) {
 
@@ -65,7 +52,6 @@ public class ImpMap {
 			}
 		}
 
-
 		for (String issue : issueImpMap.keySet()) {
 			List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
 			double maxIssueValue = 0.0;
@@ -78,16 +64,12 @@ public class ImpMap {
 				currentUnit.importanceWeight /= maxIssueValue;
 			}
 		}
-
-
-
-
 	}
 
 	private void renewMaps(){
 		issueValueImpMap = new HashMap<>();
 		issueImpMap = new HashMap<>();
-		// Create empty my import map and opponent's value map
+		// Create empty importance map
 		for (String issue : domain.getIssues()) {
 			issueImpMap.put(issue, 0.0);
 			ValueSet values = domain.getValues(issue);
@@ -99,7 +81,6 @@ public class ImpMap {
 		}
 	}
 
-
 	public double getImportance(Bid bid) {
 
 		double bidImportance = 0.0;
@@ -107,7 +88,6 @@ public class ImpMap {
 		for (String issue : bid.getIssues()) {
 			sumIssueImp += issueImpMap.get(issue);
 		}
-
 		for (String issue : bid.getIssues()){
 			List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
 			for (ImpUnit currentUnit : currentIssueList) {
@@ -118,7 +98,6 @@ public class ImpMap {
 			}
 		}
 		return bidImportance;
-
 	}
 }
 
