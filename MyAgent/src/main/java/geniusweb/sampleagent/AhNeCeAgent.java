@@ -29,7 +29,7 @@ import java.util.logging.Level;
 import static java.lang.Math.min;
 import static java.lang.Math.pow;
 
-public class MyAgent extends DefaultParty {
+public class AhNeCeAgent extends DefaultParty {
 
     private final Random random = new Random();
 
@@ -67,9 +67,9 @@ public class MyAgent extends DefaultParty {
     //Going to be used when elicitation system is developed in more detail
     private BigDecimal exploredBidRatio = new BigDecimal("0.00");
 
-    public MyAgent() { }
+    public AhNeCeAgent() { }
 
-    public MyAgent(Reporter reporter) {
+    public AhNeCeAgent(Reporter reporter) {
         super(reporter); // for debugging
     }
 
