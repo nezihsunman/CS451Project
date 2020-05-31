@@ -193,19 +193,23 @@ public class AhNeCeAgent extends DefaultParty {
 
     private Action makeAnOffer() throws IOException {
         while (true) {
-
             Bid randomBid = randomBidGenerator();
-            if (impMap.getImportance(randomBid) > 0.9) {
+            if (impMap.getImportance(randomBid) > 0.8 && oppImpMap.getImportance(randomBid) > 0.45 &&  oppImpMap.getImportance(randomBid) < 0.7) {
                 // TODO  -->  if oppImpMap.getImportance(randomBid) < 0.6 + (1-acceptanceLowerBound)
                 // After learning time restrictions, its problematic for now
                 ourOffer = randomBid;
                 break;
             }
         }
+        getReporter().log(Level.INFO, "---" + me + " New Offer Found: OppImp:"+oppImpMap.getImportance(ourOffer) + "ImpMap: "+ impMap.getImportance(ourOffer) );
         return new Offer(me, ourOffer);
     }
 
     private Action doWeAccept() {
+        if (this.impMap.getImportance(lastReceivedBid) - oppImpMap.getImportance(lastReceivedBid) > 0.1) {
+            return new Accept(me, lastReceivedBid);
+        }
+        //TODO set above
         if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound) {
             getReporter().log(Level.INFO, "---" + me + " I am going to accept if the offer is better for me");
         }
@@ -227,7 +231,7 @@ public class AhNeCeAgent extends DefaultParty {
     private void strategySelection() throws IOException {
 
         // 6.6 means lower bound is set to 0.8 in time 1
-        this.acceptanceLowerBound = (1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 6.6)) + lostElicitScore.doubleValue();
+        this.acceptanceLowerBound = (1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 5)) + lostElicitScore.doubleValue(); //TODO set 6.6
 
         this.opponentEstimatedProfile.updateBid(counterOffer);
         this.oppImpMap.update(opponentEstimatedProfile);
