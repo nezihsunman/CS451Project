@@ -12,6 +12,7 @@ import geniusweb.profileconnection.ProfileConnectionFactory;
 import geniusweb.profileconnection.ProfileInterface;
 import geniusweb.progress.Progress;
 import geniusweb.progress.ProgressRounds;
+import geniusweb.progress.ProgressTime;
 import geniusweb.sampleagent.impmap.ImpMap;
 import geniusweb.sampleagent.impmap.OppImpMap;
 import geniusweb.sampleagent.linearorder.OppSimpleLinearOrdering;
@@ -44,7 +45,6 @@ public class AhNeCeAgent extends DefaultParty {
 
     private AllBidsList allbids; // all bids possible in domain.
     private List<Bid> orderedbids;
-    private List<Bid> bestBids;
     private Bid elicitBid = null;
     private SimpleLinearOrdering ourEstimatedProfile = null;
     private OppSimpleLinearOrdering opponentEstimatedProfile = null;
@@ -72,7 +72,7 @@ public class AhNeCeAgent extends DefaultParty {
 
     @Override
     public Capabilities getCapabilities() {
-        return new Capabilities(new HashSet<>(Arrays.asList("SHAOP","SAOP")));
+        return new Capabilities(new HashSet<>(Arrays.asList("SHAOP", "SAOP")));
     }
 
     @Override
@@ -99,10 +99,11 @@ public class AhNeCeAgent extends DefaultParty {
                 }
             } else if (info instanceof YourTurn) {
                 getReporter().log(Level.INFO, "---" + me + "  Your Turn info has received with bid: " + lastReceivedBid);
-                myTurn();
                 if (progress instanceof ProgressRounds) {
                     progress = ((ProgressRounds) progress).advance();
                 }
+                myTurn();
+
             } else if (info instanceof Finished) {
                 getReporter().log(Level.INFO, "Final outcome:" + info);
             }
@@ -135,20 +136,6 @@ public class AhNeCeAgent extends DefaultParty {
             elicitBid = impMap.leastKnownBidGenerator(allbids);
             getReservationRatio();
             this.impMap.update(ourEstimatedProfile);
-            double impLowerBound = 0.9;
-            while(true){
-                this.bestBids = new ArrayList<>();
-                for(int i = 0; i< allBidSize.intValue(); i++) {
-                    Bid testBid = allbids.get(BigInteger.valueOf(i));
-                    if (impMap.getImportance(testBid) > impLowerBound) {
-                        bestBids.add(testBid);
-                    }
-                }
-                getReporter().log(Level.INFO, "---" + me + " bid>"+impLowerBound+"size: "+ bestBids.size());
-                if(bestBids.size() > 0)
-                    break;
-                impLowerBound -= 0.05;
-            }
 
         } else {
             throw new UnsupportedOperationException("Only DefaultPartialOrdering supported");
@@ -206,25 +193,32 @@ public class AhNeCeAgent extends DefaultParty {
         return null;
     }
 
-    private Action makeAnOffer() throws IOException {
+    private Bid randomBidGenerator() {
         Random rand = new Random();
-        for(int i = 0; i< bestBids.size() * 2; i++) {
-            Bid testBid = bestBids.get(rand.nextInt(bestBids.size()));
-            if(oppImpMap.getImportance(testBid) > 0.45 &&  oppImpMap.getImportance(testBid) < 0.7) {
-                ourOffer = testBid;
-                break;
+        return allbids.get(rand.nextInt(allbids.size().intValue()));
+    }
+
+    private Action makeAnOffer() throws IOException {
+        ourOffer = null;
+        double bidImportanceLowerBound = 0.9;
+        while (true) {
+            for (int i = 0; i < allBidSize.intValue(); i++) {
+                Bid testBid = randomBidGenerator();
+                if (impMap.getImportance(testBid) > bidImportanceLowerBound) {
+                    ourOffer = testBid;
+                    if (oppImpMap.getImportance(testBid) > 0.5 && oppImpMap.getImportance(testBid) < 0.80) {
+                        break;
+                    }
+                }
             }
-            ourOffer = testBid;
+            if(ourOffer != null) break;
+            bidImportanceLowerBound -= 0.05;
         }
-        getReporter().log(Level.INFO, "---" + me + " New Offer Found: OppImp:"+oppImpMap.getImportance(ourOffer) + "ImpMap: "+ impMap.getImportance(ourOffer) );
+        getReporter().log(Level.INFO, "---" + me + " New Offer Found: OppImp:" + oppImpMap.getImportance(ourOffer) + "ImpMap: " + impMap.getImportance(ourOffer));
         return new Offer(me, ourOffer);
     }
 
     private Action doWeAccept() {
-        if (this.impMap.getImportance(lastReceivedBid) - oppImpMap.getImportance(lastReceivedBid) > 0.1) {
-            return new Accept(me, lastReceivedBid);
-        }
-        //TODO set above
         if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound) {
             getReporter().log(Level.INFO, "---" + me + " I am going to accept if the offer is better for me");
         }
@@ -241,7 +235,7 @@ public class AhNeCeAgent extends DefaultParty {
 
         // 6.6 means lower bound is set to 0.8 in time 1
         this.acceptanceLowerBound = (1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 5)) + lostElicitScore.doubleValue(); //TODO set 6.6
-        getReporter().log(Level.INFO, "----> Time :" + time + "  Acceptance Lower Bound:" + this.acceptanceLowerBound+"Max "+max(0, 2 * (0.5 - this.time))+ "pow: "+pow(min(0, 2 * (0.5 - this.time)), 2));
+        getReporter().log(Level.INFO, "----> Time :" + time + "  Acceptance Lower Bound:" + this.acceptanceLowerBound + "Max " + max(0, 2 * (0.5 - this.time)) + "pow: " + pow(min(0, 2 * (0.5 - this.time)), 2));
         this.opponentEstimatedProfile.updateBid(counterOffer);
         this.oppImpMap.update(opponentEstimatedProfile);
 
@@ -249,13 +243,6 @@ public class AhNeCeAgent extends DefaultParty {
             this.impMap.update(ourEstimatedProfile);
             getReservationRatio();
             elicitBid = this.impMap.leastKnownBidGenerator(allbids);
-            this.bestBids = new ArrayList<>();
-            for(int i = 0; i< allBidSize.intValue(); i++) {
-                Bid testBid = allbids.get(BigInteger.valueOf(i));
-                if (impMap.getImportance(testBid) > 0.9) {
-                    bestBids.add(testBid);
-                }
-            }
         }
 
         getReporter().log(Level.INFO, "----> Time :" + time + "  Acceptance Lower Bound:" + acceptanceLowerBound);
@@ -286,7 +273,8 @@ public class AhNeCeAgent extends DefaultParty {
             Bid resBid = this.profileint.getProfile().getReservationBid();
             if (resBid != null) {
                 this.reservationImportanceRatio = this.impMap.getImportance(resBid);
-            }
+            } else
+                this.reservationImportanceRatio = 0;
         } catch (Exception e) {
             this.reservationImportanceRatio = 0;
         }
