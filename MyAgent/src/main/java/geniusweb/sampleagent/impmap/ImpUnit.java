@@ -5,6 +5,7 @@ import geniusweb.issuevalue.Value;
 public class ImpUnit {
 	public Value valueOfIssue;
 	public double importanceWeight = 0;
+	public int count = 0;
 
 	public ImpUnit(Value value) {
 		this.valueOfIssue = value;

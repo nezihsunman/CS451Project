@@ -22,7 +22,6 @@ import javax.websocket.DeploymentException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -46,7 +45,7 @@ public class AhNeCeAgent extends DefaultParty {
 
     private AllBidsList allbids; // all bids possible in domain.
     private List<Bid> orderedbids;
-    private List<Bid> elicitBidList = new ArrayList<>();
+    private Bid elicitBid = null;
     private SimpleLinearOrdering ourEstimatedProfile = null;
     private OppSimpleLinearOrdering opponentEstimatedProfile = null;
     private ImpMap impMap = null;
@@ -57,15 +56,12 @@ public class AhNeCeAgent extends DefaultParty {
     // Initially equals to 0
     private BigDecimal lostElicitScore = new BigDecimal("0.00");
 
-    // If no reservation rasio is assigned by the system then it is equal to 0 by default
+    // If no reservation ratio is assigned by the system then it is equal to 0 by default
     private BigDecimal reservationImportanceRatio = new BigDecimal("0.00");
 
     //Set default as 0.1
     private BigDecimal elicitationCost = new BigDecimal("0.1");
-    private BigDecimal elicitBoundRatio = new BigDecimal("0.0");
-
-    //Going to be used when elicitation system is developed in more detail
-    private BigDecimal exploredBidRatio = new BigDecimal("0.00");
+    private boolean doWeElicitate = false;
 
     public AhNeCeAgent() { }
 
@@ -137,12 +133,7 @@ public class AhNeCeAgent extends DefaultParty {
             this.oppImpMap = new OppImpMap(partialprofile);
             this.ourEstimatedProfile = new SimpleLinearOrdering(profileint.getProfile());
             orderedbids = ourEstimatedProfile.getBids();
-            exploredBidRatio = BigDecimal.valueOf(orderedbids.size()).divide(new BigDecimal(allBidSize), 8, RoundingMode.HALF_UP);
-
-            getReporter().log(Level.INFO, "Ordered Bids Before Elicitation: " + orderedbids);
-            checkElicitation();
-            getReporter().log(Level.INFO, "---"+me+" Elicitation check ended");
-
+            elicitBid = impMap.leastKnownBidGenerator(allbids);
             this.reservationImportanceRatio = this.getReservationRatio();
         }
         else{
@@ -157,13 +148,17 @@ public class AhNeCeAgent extends DefaultParty {
         prevReceivedBid = counterOffer;
         counterOffer = lastReceivedBid;
         Action action = null;
-        checkElicitation();
         getReporter().log(Level.INFO, "---"+me+" Elicitation check ended");
+        if(elicitBid != null && counterOffer != null && prevReceivedBid != null && doWeElicitateCheck()){
+            doWeElicitate = true;
+            lostElicitScore.add(elicitationCost);
+        }
+        if(elicitBid != null && counterOffer != null && this.doWeElicitate){
 
-        if(elicitBidList != null && elicitBidList.size() >= 0){
-            // returns null action if elicitation is done
-            action = doElicitation();
-            getReporter().log(Level.INFO, "---"+me+" doElicitation method is finished");
+            action = new ElicitComparison(me, counterOffer, ourEstimatedProfile.getBids());
+            elicitBid = null;
+            this.doWeElicitate = false;
+            getReporter().log(Level.INFO, "---"+me+" Elicit bit is sent to elicitation");
         }
         else {
             if (counterOffer != null) {
@@ -221,25 +216,6 @@ public class AhNeCeAgent extends DefaultParty {
         return null;
     }
 
-    private Action doElicitation() throws IOException {
-        Action action = null;
-        if(elicitBidList.size() == 0){
-            getReporter().log(Level.INFO, "---"+me+" No elicitation bids left");
-            orderedbids = ourEstimatedProfile.getBids();
-            this.impMap.update(ourEstimatedProfile);
-            getReporter().log(Level.INFO, "Ordered Bids After Elicitation: " + orderedbids);
-            exploredBidRatio = BigDecimal.valueOf(orderedbids.size()).divide(new BigDecimal(allBidSize), 8, RoundingMode.HALF_UP);
-            elicitBidList = null;
-            action = null;
-        }
-        else{
-            getReporter().log(Level.INFO, "---"+me+" Sending elicitation request");
-            action = new ElicitComparison(me, (Bid) elicitBidList.get(0), ourEstimatedProfile.getBids());
-            elicitBidList.remove(0);
-        }
-        return action;
-    }
-
     private Bid randomBidGenerator() throws IOException {
         AllBidsList bidspace = new AllBidsList( profileint.getProfile().getDomain());
         long i = random.nextInt(bidspace.size().intValue());
@@ -247,37 +223,40 @@ public class AhNeCeAgent extends DefaultParty {
         return bid;
     }
 
-    private void strategySelection(){
+    private void strategySelection() throws IOException {
 
         // 6.6 means lower bound is set to 0.8 in time 1
-        this.acceptanceLowerBound = 1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 6.6);
+        this.acceptanceLowerBound = (1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 6.6)) + lostElicitScore.doubleValue();
 
         this.opponentEstimatedProfile.updateBid(counterOffer);
         this.oppImpMap.update(opponentEstimatedProfile);
+
+        if(elicitBid == null){
+            this.impMap.update(ourEstimatedProfile);
+            elicitBid = this.impMap.leastKnownBidGenerator(allbids);
+        }
 
         getReporter().log(Level.INFO, "----> Time :"+time+"  Acceptance Lower Bound:" + acceptanceLowerBound);
         getReporter().log(Level.INFO, "----> Bid importance for opponent :"+ oppImpMap.getImportance(counterOffer));
         getReporter().log(Level.INFO, "----> Bid importance for me :"+ impMap.getImportance(counterOffer));
     }
 
-    private void checkElicitation() throws IOException {
+    private boolean doWeElicitateCheck() throws IOException {
 
-        getReporter().log(Level.INFO, "---"+me+" Checking if we do elicitation");
-        getReporter().log(Level.INFO, "---"+me+" Lost Elicit Score: "+ lostElicitScore);
-        getReporter().log(Level.INFO, "---"+me+" Elicit Cost: "+ elicitationCost);
-        getReporter().log(Level.INFO, "---"+me+" Lost elicitBoundRatio: "+ elicitBoundRatio);
-        int elicitNumber = elicitBoundRatio.subtract(lostElicitScore).divide(elicitationCost, 8, RoundingMode.HALF_UP).intValue();
-        if(elicitNumber > 0){
-            elicitBidList = new ArrayList<>();
-            getReporter().log(Level.INFO, "---"+me+" We will do elicitation for n times:" + elicitNumber);
-            for(int i = 0; i< elicitNumber; i++){
-                elicitBidList.add(randomBidGenerator());
-                //TODO calculate with respect to impMap (Select the  minimum existing issue value to send to elicitation)
-                lostElicitScore = lostElicitScore.add(elicitationCost);
+        if(!prevReceivedBid.equals(counterOffer)) return false;
+        if(lostElicitScore.doubleValue() + elicitationCost.doubleValue() > 0.075) return false;
+        int issueCount = 0;
+        int similarIssueCount = 0;
+        for (String issue : this.profileint.getProfile().getDomain().getIssues()) {
+            issueCount++;
+            if(counterOffer.getValue(issue).equals(elicitBid.getValue(issue))){
+                similarIssueCount++;
             }
-            getReporter().log(Level.INFO, "---"+me+": Elicitation list is assigned");
         }
-        getReporter().log(Level.INFO, "---"+me+": Elicitation list is not assigned");
+        double similarityRatio = (double)similarIssueCount/issueCount;
+        if(similarityRatio > 0.7) return true; // TODO change
+
+        return false;
     }
 
     private BigDecimal getReservationRatio() throws IOException {

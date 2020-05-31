@@ -1,5 +1,6 @@
 package geniusweb.sampleagent.impmap;
 
+import geniusweb.bidspace.AllBidsList;
 import geniusweb.issuevalue.Bid;
 import geniusweb.issuevalue.Domain;
 import geniusweb.issuevalue.Value;
@@ -7,6 +8,8 @@ import geniusweb.issuevalue.ValueSet;
 import geniusweb.profile.Profile;
 import geniusweb.sampleagent.linearorder.SimpleLinearOrdering;
 
+import java.io.IOException;
+import java.math.BigInteger;
 import java.util.*;
 
 public class ImpMap {
@@ -46,6 +49,7 @@ public class ImpMap {
 				for (ImpUnit currentUnit : currentIssueList) {
 					if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
 						currentUnit.importanceWeight += bidImportance;
+						currentUnit.count += 1;
 						break;
 					}
 				}
@@ -99,5 +103,38 @@ public class ImpMap {
 		}
 		return bidImportance;
 	}
+
+	public Bid leastKnownBidGenerator(AllBidsList allbids) throws IOException {
+
+		HashMap<String, Value> leastKnownBidValues= new HashMap<>();
+		for (String issue : issueImpMap.keySet()) {
+			List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
+			Value leastKnownIssueValue = null;
+			int minCount = Integer.MAX_VALUE;
+			for (ImpUnit currentUnit : currentIssueList) {
+				if (currentUnit.count < minCount) {
+					minCount = currentUnit.count;
+					leastKnownIssueValue = currentUnit.valueOfIssue;
+				}
+			}
+			leastKnownBidValues.put(issue, leastKnownIssueValue);
+		}
+
+		for (Bid bid : allbids) {
+			boolean flag = true;
+			for (String issue : issueImpMap.keySet()) {
+				if (!bid.getValue(issue).equals(leastKnownBidValues.get(issue))){
+					flag = false;
+					break;
+				}
+			}
+			if(flag == true) {
+				return bid;
+			}
+		}
+		return null;
+	}
+
+
 }
 
