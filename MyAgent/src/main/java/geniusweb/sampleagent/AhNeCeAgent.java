@@ -57,13 +57,14 @@ public class AhNeCeAgent extends DefaultParty {
     private BigDecimal lostElicitScore = new BigDecimal("0.00");
 
     // If no reservation ratio is assigned by the system then it is equal to 0 by default
-    private BigDecimal reservationImportanceRatio = new BigDecimal("0.00");
+    private double reservationImportanceRatio = 0.0;
 
     //Set default as 0.1
     private BigDecimal elicitationCost = new BigDecimal("0.1");
     private boolean doWeElicitate = false;
 
-    public AhNeCeAgent() { }
+    public AhNeCeAgent() {
+    }
 
     public AhNeCeAgent(Reporter reporter) {
         super(reporter); // for debugging
@@ -85,19 +86,19 @@ public class AhNeCeAgent extends DefaultParty {
             if (info instanceof Settings) {
                 Settings settings = (Settings) info;
                 init(settings);
-                getReporter().log(Level.INFO, "---"+me+" Setting initialization is done");
+                getReporter().log(Level.INFO, "---" + me + " Setting initialization is done");
             } else if (info instanceof ActionDone) {
                 Action lastReceivedAction = ((ActionDone) info).getAction();
                 if (lastReceivedAction instanceof Offer) {
-                    getReporter().log(Level.INFO, "---"+me+"   Offer came:" + ((Offer) lastReceivedAction).getBid());
+                    getReporter().log(Level.INFO, "---" + me + "   Offer came:" + ((Offer) lastReceivedAction).getBid());
                     lastReceivedBid = ((Offer) lastReceivedAction).getBid();
                 } else if (lastReceivedAction instanceof Comparison) {
                     ourEstimatedProfile = ourEstimatedProfile.with(((Comparison) lastReceivedAction).getBid(), ((Comparison) lastReceivedAction).getWorse());
-                    getReporter().log(Level.INFO, "---"+me+" Comparison done for bid: "+ ((Comparison) lastReceivedAction).getBid());
+                    getReporter().log(Level.INFO, "---" + me + " Comparison done for bid: " + ((Comparison) lastReceivedAction).getBid());
                     myTurn();
                 }
             } else if (info instanceof YourTurn) {
-                getReporter().log(Level.INFO, "---"+me+"  Your Turn info has received with bid: " + lastReceivedBid);
+                getReporter().log(Level.INFO, "---" + me + "  Your Turn info has received with bid: " + lastReceivedBid);
                 myTurn();
                 if (progress instanceof ProgressRounds) {
                     progress = ((ProgressRounds) progress).advance();
@@ -115,14 +116,12 @@ public class AhNeCeAgent extends DefaultParty {
         this.progress = settings.getProgress();
         this.profileint = ProfileConnectionFactory.create(settings.getProfile().getURI(), getReporter());
 
-        if(profileint.getProfile()  instanceof LinearAdditive){
+        if (profileint.getProfile() instanceof LinearAdditive) {
             throw new UnsupportedOperationException(
                     "Only DefaultPartialOrdering supported");
-        }
+        } else if (profileint.getProfile() instanceof PartialOrdering) {
 
-        else if(profileint.getProfile() instanceof PartialOrdering){
-
-            getReporter().log(Level.INFO, "---"+me+" Partial profile has received");
+            getReporter().log(Level.INFO, "---" + me + " Partial profile has received");
 
             PartialOrdering partialprofile = (PartialOrdering) profileint.getProfile();
 
@@ -134,69 +133,69 @@ public class AhNeCeAgent extends DefaultParty {
             this.ourEstimatedProfile = new SimpleLinearOrdering(profileint.getProfile());
             orderedbids = ourEstimatedProfile.getBids();
             elicitBid = impMap.leastKnownBidGenerator(allbids);
-            this.reservationImportanceRatio = this.getReservationRatio();
-        }
-        else{
+            getReservationRatio();
+        } else {
             throw new UnsupportedOperationException("Only DefaultPartialOrdering supported");
         }
 
     }
 
     private void myTurn() throws IOException {
-        getReporter().log(Level.INFO, "---"+me+" entered into myTurn");
+        getReporter().log(Level.INFO, "---" + me + " entered into myTurn");
         time = progress.get(System.currentTimeMillis());
         prevReceivedBid = counterOffer;
         counterOffer = lastReceivedBid;
         Action action = null;
-        getReporter().log(Level.INFO, "---"+me+" Elicitation check ended");
-        if(elicitBid != null && counterOffer != null && prevReceivedBid != null && doWeElicitateCheck()){
+        getReporter().log(Level.INFO, "---" + me + " Elicitation check ended");
+        if (elicitBid != null && counterOffer != null && prevReceivedBid != null && doWeElicitateCheck()) {
             doWeElicitate = true;
             lostElicitScore.add(elicitationCost);
         }
-        if(elicitBid != null && counterOffer != null && this.doWeElicitate){
+        if (elicitBid != null && counterOffer != null && this.doWeElicitate) {
 
             action = new ElicitComparison(me, counterOffer, ourEstimatedProfile.getBids());
             elicitBid = null;
             this.doWeElicitate = false;
-            getReporter().log(Level.INFO, "---"+me+" Elicit bit is sent to elicitation");
-        }
-        else {
+            getReporter().log(Level.INFO, "---" + me + " Elicit bit is sent to elicitation");
+        } else {
             if (counterOffer != null) {
                 strategySelection();
-                getReporter().log(Level.INFO, "---"+me+"  Strategy selection is finished");
+                getReporter().log(Level.INFO, "---" + me + "  Strategy selection is finished");
 
-                getReporter().log(Level.INFO, "---"+me+" doWeEndTheNegotiation?");
+                getReporter().log(Level.INFO, "---" + me + " doWeEndTheNegotiation?");
                 //if not Accepted return null
-                //For now we dont end the negotiation
-                action = doWeEndTheNegotiation(action);
+                action = doWeEndTheNegotiation();
 
-                getReporter().log(Level.INFO, "---"+me+" doWeAcceptTheOfferedBid?");
-                //if not Accepted return null
-                action = doWeAccept();
+                if (action != null) {
+                    getReporter().log(Level.INFO, "---" + me + " doWeAcceptTheOfferedBid?");
+                    //if not Accepted return null
+                    action = doWeAccept();
+                }
             }
         }
-        if (action == null){
-            getReporter().log(Level.INFO, "---"+me+" Selecting an offer");
+        if (action == null) {
+            getReporter().log(Level.INFO, "---" + me + " Selecting an offer");
             action = makeAnOffer();
-            getReporter().log(Level.INFO, "---"+me+" offer is selected");
+            getReporter().log(Level.INFO, "---" + me + " offer is selected");
         }
         getConnection().send(action);
-        getReporter().log(Level.INFO, "---"+me+" action is sent as: " + action);
+        getReporter().log(Level.INFO, "---" + me + " action is sent as: " + action);
     }
 
-    private Action doWeEndTheNegotiation(Action action) {
-        //TODO Will be changed after tests if necessary
-        if(false)
+    private Action doWeEndTheNegotiation() {
+        if (reservationImportanceRatio > 0.85) {
+            getReporter().log(Level.INFO, "---" + me + " Negotiation is ended at doWeNeedNegotiation");
             return new EndNegotiation(me);
+        }
         return null;
     }
 
     private Action makeAnOffer() throws IOException {
-        while(true){
+        while (true) {
             Bid randomBid = randomBidGenerator();
-            if(impMap.getImportance(randomBid) > 0.9){
-                 // TODO  -->  if oppImpMap.getImportance(randomBid) < 0.6 + (1-acceptanceLowerBound)
-                 // After learning time restrictions, its problematic for now
+            if (impMap.getImportance(randomBid) > 0.9) {
+                // TODO  -->  if oppImpMap.getImportance(randomBid) < 0.6 + (1-acceptanceLowerBound)
+                // After learning time restrictions, its problematic for now
                 ourOffer = randomBid;
                 break;
             }
@@ -205,19 +204,19 @@ public class AhNeCeAgent extends DefaultParty {
     }
 
     private Action doWeAccept() {
-        if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound){
-            getReporter().log(Level.INFO, "---"+ me +" I am going to accept if the offer is better for me");
+        if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound) {
+            getReporter().log(Level.INFO, "---" + me + " I am going to accept if the offer is better for me");
         }
         if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound
-                && oppImpMap.getImportance(lastReceivedBid) < impMap.getImportance(lastReceivedBid)){
-            getReporter().log(Level.INFO, "---"+ me +" I accept the offer");
+                && oppImpMap.getImportance(lastReceivedBid) < impMap.getImportance(lastReceivedBid)) {
+            getReporter().log(Level.INFO, "---" + me + " I accept the offer");
             return new Accept(me, lastReceivedBid);
         }
         return null;
     }
 
     private Bid randomBidGenerator() throws IOException {
-        AllBidsList bidspace = new AllBidsList( profileint.getProfile().getDomain());
+        AllBidsList bidspace = new AllBidsList(profileint.getProfile().getDomain());
         long i = random.nextInt(bidspace.size().intValue());
         Bid bid = bidspace.get(BigInteger.valueOf(i));
         return bid;
@@ -231,44 +230,43 @@ public class AhNeCeAgent extends DefaultParty {
         this.opponentEstimatedProfile.updateBid(counterOffer);
         this.oppImpMap.update(opponentEstimatedProfile);
 
-        if(elicitBid == null){
+        if (elicitBid == null) {
             this.impMap.update(ourEstimatedProfile);
+            getReservationRatio();
             elicitBid = this.impMap.leastKnownBidGenerator(allbids);
         }
 
-        getReporter().log(Level.INFO, "----> Time :"+time+"  Acceptance Lower Bound:" + acceptanceLowerBound);
-        getReporter().log(Level.INFO, "----> Bid importance for opponent :"+ oppImpMap.getImportance(counterOffer));
-        getReporter().log(Level.INFO, "----> Bid importance for me :"+ impMap.getImportance(counterOffer));
+        getReporter().log(Level.INFO, "----> Time :" + time + "  Acceptance Lower Bound:" + acceptanceLowerBound);
+        getReporter().log(Level.INFO, "----> Bid importance for opponent :" + oppImpMap.getImportance(counterOffer));
+        getReporter().log(Level.INFO, "----> Bid importance for me :" + impMap.getImportance(counterOffer));
     }
 
     private boolean doWeElicitateCheck() throws IOException {
 
-        if(!prevReceivedBid.equals(counterOffer)) return false;
-        if(lostElicitScore.doubleValue() + elicitationCost.doubleValue() > 0.075) return false;
+        if (!prevReceivedBid.equals(counterOffer)) return false;
+        if (lostElicitScore.doubleValue() + elicitationCost.doubleValue() > 0.075) return false;
         int issueCount = 0;
         int similarIssueCount = 0;
         for (String issue : this.profileint.getProfile().getDomain().getIssues()) {
             issueCount++;
-            if(counterOffer.getValue(issue).equals(elicitBid.getValue(issue))){
+            if (counterOffer.getValue(issue).equals(elicitBid.getValue(issue))) {
                 similarIssueCount++;
             }
         }
-        double similarityRatio = (double)similarIssueCount/issueCount;
-        if(similarityRatio > 0.7) return true; // TODO change
+        double similarityRatio = (double) similarIssueCount / issueCount;
+        if (similarityRatio > 0.6) return true; // TODO change if needed
 
         return false;
     }
 
-    private BigDecimal getReservationRatio() throws IOException {
-        try{
-            /*Bid resBid = this.profileint.getProfile().getReservationBid();
+    private void getReservationRatio() throws IOException {
+        try {
+            Bid resBid = this.profileint.getProfile().getReservationBid();
             if (resBid != null) {
-                resValue = this.impMap.getImportance(resBid);
-            }*/
-            // For now, the reservation bid is not used in CS451 Project
-            return BigDecimal.valueOf(0.0);
+                this.reservationImportanceRatio = this.impMap.getImportance(resBid);
+            }
         } catch (Exception e) {
-            return BigDecimal.valueOf(0.0);
+            this.reservationImportanceRatio = 0;
         }
     }
 }
