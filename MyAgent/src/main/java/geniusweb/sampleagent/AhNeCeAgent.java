@@ -200,7 +200,7 @@ public class AhNeCeAgent extends DefaultParty {
 
     private Action makeAnOffer() throws IOException {
         ourOffer = null;
-        double bidImportanceLowerBound = 0.9;
+        double bidImportanceLowerBound = acceptanceLowerBound - 0.05;// TODO 0.9 default
         while (true) {
             for (int i = 0; i < allBidSize.intValue(); i++) {
                 Bid testBid = randomBidGenerator();
