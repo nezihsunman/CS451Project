@@ -72,7 +72,7 @@ public class AhNeCeAgent extends DefaultParty {
 
     @Override
     public Capabilities getCapabilities() {
-        return new Capabilities(new HashSet<>(Arrays.asList("SHAOP")));
+        return new Capabilities(new HashSet<>(Arrays.asList("SHAOP","SAOP")));
     }
 
     @Override
@@ -134,6 +134,7 @@ public class AhNeCeAgent extends DefaultParty {
             orderedbids = ourEstimatedProfile.getBids();
             elicitBid = impMap.leastKnownBidGenerator(allbids);
             getReservationRatio();
+            this.impMap.update(ourEstimatedProfile);
         } else {
             throw new UnsupportedOperationException("Only DefaultPartialOrdering supported");
         }
@@ -192,6 +193,7 @@ public class AhNeCeAgent extends DefaultParty {
 
     private Action makeAnOffer() throws IOException {
         while (true) {
+
             Bid randomBid = randomBidGenerator();
             if (impMap.getImportance(randomBid) > 0.9) {
                 // TODO  -->  if oppImpMap.getImportance(randomBid) < 0.6 + (1-acceptanceLowerBound)
