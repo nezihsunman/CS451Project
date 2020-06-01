@@ -60,7 +60,7 @@ public class AhNeCeAgent extends DefaultParty {
     private double reservationImportanceRatio = 0.0;
 
     //Set default as 0.1
-    private BigDecimal elicitationCost = new BigDecimal("0.001");
+    private BigDecimal elicitationCost = new BigDecimal("0.1");
     private boolean doWeElicitate = false;
 
     public AhNeCeAgent() {
@@ -187,7 +187,7 @@ public class AhNeCeAgent extends DefaultParty {
 
     private Action doWeEndTheNegotiation() {
         if (reservationImportanceRatio > 0.85) {
-            getReporter().log(Level.INFO, "---" + me + " Negotiation is ended at doWeNeedNegotiation");
+            getReporter().log(Level.INFO, "---" + me + " Negotiation is ended with the method doWeNeedNegotiation");
             return new EndNegotiation(me);
         }
         return null;
@@ -200,7 +200,7 @@ public class AhNeCeAgent extends DefaultParty {
 
     private Action makeAnOffer() throws IOException {
         ourOffer = null;
-        double bidImportanceLowerBound = acceptanceLowerBound - 0.05;// TODO 0.9 default
+        double bidImportanceLowerBound = acceptanceLowerBound - 0.05;
         while (true) {
             for (int i = 0; i < allBidSize.intValue(); i++) {
                 Bid testBid = randomBidGenerator();
@@ -223,7 +223,7 @@ public class AhNeCeAgent extends DefaultParty {
             getReporter().log(Level.INFO, "---" + me + " I am going to accept if the offer is better for me");
         }
         if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound
-                && oppImpMap.getImportance(lastReceivedBid) < impMap.getImportance(lastReceivedBid)) {
+                && oppImpMap.getImportance(lastReceivedBid) * min(1, acceptanceLowerBound + 0.075) < impMap.getImportance(lastReceivedBid)) {
             getReporter().log(Level.INFO, "---" + me + " I accept the offer");
             return new Accept(me, lastReceivedBid);
         }
@@ -234,7 +234,7 @@ public class AhNeCeAgent extends DefaultParty {
     private void strategySelection() throws IOException {
 
         // 6.6 means lower bound is set to 0.8 in time 1
-        this.acceptanceLowerBound = (1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 5)) + lostElicitScore.doubleValue(); //TODO set 6.6
+        this.acceptanceLowerBound = (1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 6.6)) + lostElicitScore.doubleValue();
         getReporter().log(Level.INFO, "----> Time :" + time + "  Acceptance Lower Bound:" + this.acceptanceLowerBound + "Max " + max(0, 2 * (0.5 - this.time)) + "pow: " + pow(min(0, 2 * (0.5 - this.time)), 2));
         this.opponentEstimatedProfile.updateBid(counterOffer);
         this.oppImpMap.update(opponentEstimatedProfile);
@@ -263,7 +263,7 @@ public class AhNeCeAgent extends DefaultParty {
             }
         }
         double similarityRatio = (double) similarIssueCount / issueCount;
-        if (similarityRatio > 0.6) return true; // TODO change if needed
+        if (similarityRatio > 0.6) return true;
 
         return false;
     }
