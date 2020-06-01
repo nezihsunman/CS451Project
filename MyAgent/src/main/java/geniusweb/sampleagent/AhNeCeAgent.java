@@ -200,7 +200,7 @@ public class AhNeCeAgent extends DefaultParty {
 
     private Action makeAnOffer() throws IOException {
         ourOffer = null;
-        double bidImportanceLowerBound = acceptanceLowerBound - 0.05;
+        double bidImportanceLowerBound = min(0.9, acceptanceLowerBound);
         while (true) {
             for (int i = 0; i < allBidSize.intValue(); i++) {
                 Bid testBid = randomBidGenerator();
@@ -211,7 +211,7 @@ public class AhNeCeAgent extends DefaultParty {
                     }
                 }
             }
-            if(ourOffer != null) break;
+            if (ourOffer != null) break;
             bidImportanceLowerBound -= 0.05;
         }
         getReporter().log(Level.INFO, "---" + me + " New Offer Found: OppImp:" + oppImpMap.getImportance(ourOffer) + "ImpMap: " + impMap.getImportance(ourOffer));
