@@ -199,6 +199,7 @@ public class AhNeCeAgent extends DefaultParty {
     }
 
     private Action makeAnOffer() throws IOException {
+        //TODO in the future, offer strategy can be improved: As time goes on, select the offer with the difference of minimum importance
         ourOffer = null;
         double bidImportanceLowerBound = min(0.9, acceptanceLowerBound);
         while (true) {
@@ -206,7 +207,7 @@ public class AhNeCeAgent extends DefaultParty {
                 Bid testBid = randomBidGenerator();
                 if (impMap.getImportance(testBid) > bidImportanceLowerBound) {
                     ourOffer = testBid;
-                    if (oppImpMap.getImportance(testBid) > 0.5 && oppImpMap.getImportance(testBid) < 0.80) {
+                    if (impMap.getImportance(testBid) > oppImpMap.getImportance(testBid)) {
                         break;
                     }
                 }
