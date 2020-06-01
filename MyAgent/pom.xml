@@ -6,7 +6,7 @@
 
     <groupId>geniusweb.sampleagent</groupId>
     <!-- TODO Update below if you change your project name!! -->
-    <artifactId>MyAgent</artifactId>
+    <artifactId>AhNeCeAgent</artifactId>
     <version>1.4.0</version>
     <packaging>jar</packaging>
     <properties>
