@@ -1,11 +1,11 @@
-package negotiatior.group3.impmap;
+package negotiator.group3.impmap;
 
 import geniusweb.issuevalue.Bid;
 import geniusweb.issuevalue.Domain;
 import geniusweb.issuevalue.Value;
 import geniusweb.issuevalue.ValueSet;
 import geniusweb.profile.Profile;
-import negotiatior.group3.linearorder.OppSimpleLinearOrdering;
+import negotiator.group3.linearorder.OppSimpleLinearOrdering;
 
 import java.util.ArrayList;
 import java.util.HashMap;

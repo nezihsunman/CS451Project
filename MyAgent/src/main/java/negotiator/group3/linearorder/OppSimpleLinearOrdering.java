@@ -1,4 +1,4 @@
-package negotiatior.group3.linearorder;
+package negotiator.group3.linearorder;
 
 import geniusweb.issuevalue.Bid;
 

@@ -16,7 +16,7 @@
         <basedir>.</basedir>
         <jackson-2-version>2.9.6</jackson-2-version>
         <!-- TODO Update below if you change your agent name!! -->
-        <main-class-path>negotiatior.group3.Group3</main-class-path>
+        <main-class-path>negotiator.group3.Group3</main-class-path>
     </properties>
 
     <distributionManagement>

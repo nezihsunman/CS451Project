@@ -1,4 +1,4 @@
-package negotiatior.group3;
+package negotiator.group3;
 
 import geniusweb.actions.*;
 import geniusweb.bidspace.AllBidsList;
@@ -12,10 +12,10 @@ import geniusweb.profileconnection.ProfileConnectionFactory;
 import geniusweb.profileconnection.ProfileInterface;
 import geniusweb.progress.Progress;
 import geniusweb.progress.ProgressRounds;
-import negotiatior.group3.impmap.ImpMap;
-import negotiatior.group3.impmap.OppImpMap;
-import negotiatior.group3.linearorder.OppSimpleLinearOrdering;
-import negotiatior.group3.linearorder.SimpleLinearOrdering;
+import negotiator.group3.impmap.ImpMap;
+import negotiator.group3.impmap.OppImpMap;
+import negotiator.group3.linearorder.OppSimpleLinearOrdering;
+import negotiator.group3.linearorder.SimpleLinearOrdering;
 import tudelft.utilities.logging.Reporter;
 
 import javax.websocket.DeploymentException;
