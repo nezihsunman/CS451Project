@@ -1,4 +1,4 @@
-package geniusweb.sampleagent;
+package negotiatior.group3;
 
 import geniusweb.actions.*;
 import geniusweb.bidspace.AllBidsList;
@@ -12,11 +12,10 @@ import geniusweb.profileconnection.ProfileConnectionFactory;
 import geniusweb.profileconnection.ProfileInterface;
 import geniusweb.progress.Progress;
 import geniusweb.progress.ProgressRounds;
-import geniusweb.progress.ProgressTime;
-import geniusweb.sampleagent.impmap.ImpMap;
-import geniusweb.sampleagent.impmap.OppImpMap;
-import geniusweb.sampleagent.linearorder.OppSimpleLinearOrdering;
-import geniusweb.sampleagent.linearorder.SimpleLinearOrdering;
+import negotiatior.group3.impmap.ImpMap;
+import negotiatior.group3.impmap.OppImpMap;
+import negotiatior.group3.linearorder.OppSimpleLinearOrdering;
+import negotiatior.group3.linearorder.SimpleLinearOrdering;
 import tudelft.utilities.logging.Reporter;
 
 import javax.websocket.DeploymentException;
@@ -28,7 +27,7 @@ import java.util.logging.Level;
 
 import static java.lang.Math.*;
 
-public class AhNeCeAgent extends DefaultParty {
+public class Group3 extends DefaultParty {
 
     private final Random random = new Random();
 
@@ -63,10 +62,10 @@ public class AhNeCeAgent extends DefaultParty {
     private BigDecimal elicitationCost = new BigDecimal("0.1");
     private boolean doWeElicitate = false;
 
-    public AhNeCeAgent() {
+    public Group3() {
     }
 
-    public AhNeCeAgent(Reporter reporter) {
+    public Group3(Reporter reporter) {
         super(reporter); // for debugging
     }
 

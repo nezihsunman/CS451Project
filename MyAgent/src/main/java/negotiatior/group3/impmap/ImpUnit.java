@@ -1,4 +1,4 @@
-package geniusweb.sampleagent.impmap;
+package negotiatior.group3.impmap;
 
 import geniusweb.issuevalue.Value;
 

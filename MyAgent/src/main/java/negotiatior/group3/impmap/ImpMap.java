@@ -1,4 +1,4 @@
-package geniusweb.sampleagent.impmap;
+package negotiatior.group3.impmap;
 
 import geniusweb.bidspace.AllBidsList;
 import geniusweb.issuevalue.Bid;
@@ -6,10 +6,9 @@ import geniusweb.issuevalue.Domain;
 import geniusweb.issuevalue.Value;
 import geniusweb.issuevalue.ValueSet;
 import geniusweb.profile.Profile;
-import geniusweb.sampleagent.linearorder.SimpleLinearOrdering;
+import negotiatior.group3.linearorder.SimpleLinearOrdering;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.*;
 
 public class ImpMap {

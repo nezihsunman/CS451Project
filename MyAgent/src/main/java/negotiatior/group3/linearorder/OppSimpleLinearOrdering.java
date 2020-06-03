@@ -1,4 +1,4 @@
-package geniusweb.sampleagent.linearorder;
+package negotiatior.group3.linearorder;
 
 import geniusweb.issuevalue.Bid;
 
