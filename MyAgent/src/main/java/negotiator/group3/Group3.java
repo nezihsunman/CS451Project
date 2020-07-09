@@ -59,7 +59,7 @@ public class Group3 extends DefaultParty {
     private double reservationImportanceRatio = 0.0;
 
     //Set default as 0.1
-    private BigDecimal elicitationCost = new BigDecimal("0.1");
+    private BigDecimal elicitationCost = new BigDecimal("0.02");
     private boolean doWeElicitate = false;
 
     public Group3() {
