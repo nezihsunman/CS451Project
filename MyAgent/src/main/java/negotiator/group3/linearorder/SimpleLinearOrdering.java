@@ -61,7 +61,7 @@ public class SimpleLinearOrdering implements UtilitySpace {
         if (!bids.contains(bid)) {
             return BigDecimal.ZERO;
         }
-        return new BigDecimal(bids.indexOf(bid)+1).divide(new BigDecimal((bids.size())), 8, RoundingMode.HALF_UP).pow(2);
+        return new BigDecimal(bids.indexOf(bid) + 1);
     }
 
     /*true iff bid is contained in this ordering*/

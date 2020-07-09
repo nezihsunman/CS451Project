@@ -84,7 +84,7 @@ public class ImpMap {
 		}
 	}
 
-	public double getImportance(Bid bid) {
+	public double getSimilarity(Bid bid) {
 
 		double bidImportance = 0.0;
 		double sumIssueImp = 0.0;
