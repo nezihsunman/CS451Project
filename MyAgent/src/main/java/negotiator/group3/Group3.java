@@ -246,7 +246,7 @@ public class Group3 extends DefaultParty {
 
         getReporter().log(Level.INFO, "----> Time :" + time + "  Acceptance Lower Bound:" + acceptanceLowerBound);
         getReporter().log(Level.INFO, "----> Bid importance for opponent :" + oppImpMap.getImportance(counterOffer));
-        getReporter().log(Level.INFO, "----> Bid importance for me :" + impMap.getImportance(counterOffer));
+        getReporter().log(Level.INFO, "----> (NEW) Bid importance for me :" + impMap.getImportance(counterOffer));
     }
 
     private boolean doWeElicitateCheck() throws IOException {
