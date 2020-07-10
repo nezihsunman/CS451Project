@@ -202,12 +202,28 @@ public class Group3 extends DefaultParty {
 
     private Action makeAnOffer(double time) throws IOException {
         ourOffer = null;
-        double bidImportanceHigherBound =1-(time/6);
-        double bidImportanceLowerBound = 0.95 *(1-(time/5));
+        double bidImportanceHigherBound = 1;
+        if (time <= 0.2) {
+            bidImportanceHigherBound = -1600 * time * time + 31.6 * time + 0.856;
+        } else if (time <= 0.4) {
+            bidImportanceHigherBound = -0.0967 * time * time * time + 0.735 * time * time - 1.6683 * time + 2;
+
+        } else if (time <= 0.6) {
+            bidImportanceHigherBound = -0.0429 * time * time * time * time + 0.5225 * time * time * time - 2.1921 * time * time + 3.6625 * time - 1.05;
+
+        } else if (time <= 0.8) {
+            bidImportanceHigherBound = -0.0333 * time * time * time + 0.285 * time * time - 0.7217 * time + 1.42;
+
+        } else if (time <= 1) {
+            bidImportanceHigherBound = 0.0117 * time * time * time - 0.1186 * time * time + 0.3398 * time + 0.64;
+
+        }
+
+        double bidImportanceLowerBound = ((-3.34 * time * time) + (3.33 * time) + 0.85);
         while (true) {
             for (int i = 0; i < allBidSize.intValue(); i++) {
                 Bid testBid = randomBidGenerator();
-                if (impMap.getImportance(testBid) > bidImportanceLowerBound ) {
+                if (impMap.getImportance(testBid) > bidImportanceLowerBound && impMap.getImportance(testBid) < bidImportanceHigherBound) {
                     ourOffer = testBid;
                     if (impMap.getImportance(testBid) > oppImpMap.getImportance(testBid) && oppImpMap.getImportance(testBid) > 0.5) {
                         break;
