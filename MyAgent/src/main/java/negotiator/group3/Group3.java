@@ -13,6 +13,7 @@ import geniusweb.profileconnection.ProfileInterface;
 import geniusweb.progress.Progress;
 import geniusweb.progress.ProgressRounds;
 import negotiator.group3.impmap.ImpMap;
+import negotiator.group3.impmap.ImpUnit;
 import negotiator.group3.impmap.OppImpMap;
 import negotiator.group3.linearorder.OppSimpleLinearOrdering;
 import negotiator.group3.linearorder.SimpleLinearOrdering;
@@ -61,6 +62,8 @@ public class Group3 extends DefaultParty {
     //Set default as 0.1
     private BigDecimal elicitationCost = new BigDecimal("0.1");
     private boolean doWeElicitate = false;
+
+    private HashMap<Bid, String> offerRed = new HashMap<Bid, String>();
 
     public Group3() {
     }
@@ -177,7 +180,7 @@ public class Group3 extends DefaultParty {
         }
         if (action == null) {
             getReporter().log(Level.INFO, "---" + me + " Selecting an offer");
-            action = makeAnOffer();
+            action = makeAnOffer(time);
             getReporter().log(Level.INFO, "---" + me + " offer is selected");
         }
         getConnection().send(action);
@@ -197,13 +200,14 @@ public class Group3 extends DefaultParty {
         return allbids.get(rand.nextInt(allbids.size().intValue()));
     }
 
-    private Action makeAnOffer() throws IOException {
+    private Action makeAnOffer(double time) throws IOException {
         ourOffer = null;
-        double bidImportanceLowerBound = 0.9;
+        double bidImportanceHigherBound =1-(time/6);
+        double bidImportanceLowerBound = 0.95 *(1-(time/5));
         while (true) {
             for (int i = 0; i < allBidSize.intValue(); i++) {
                 Bid testBid = randomBidGenerator();
-                if (impMap.getImportance(testBid) > bidImportanceLowerBound) {
+                if (impMap.getImportance(testBid) > bidImportanceLowerBound ) {
                     ourOffer = testBid;
                     if (impMap.getImportance(testBid) > oppImpMap.getImportance(testBid) && oppImpMap.getImportance(testBid) > 0.5) {
                         break;
@@ -211,18 +215,52 @@ public class Group3 extends DefaultParty {
                 }
             }
             if (ourOffer != null) break;
-            bidImportanceLowerBound -= 0.05;
+            bidImportanceLowerBound -= 0.02;
         }
-        getReporter().log(Level.INFO, "---" + me + " New Offer Found: OppImp:" + oppImpMap.getImportance(ourOffer) + "ImpMap: " + impMap.getImportance(ourOffer));
+        getReporter().log(Level.INFO, "---" + me + " Similarity Case New Offer" + oppImpMap.getImportance(ourOffer) + "ImpMap: " + impMap.getImportance(ourOffer));
+        offerRed.put(ourOffer, "offered");
+        getReporter().log(Level.INFO, "Offered Bid Size" + offerRed.size());
         return new Offer(me, ourOffer);
     }
+
+    private double checkSimilarity(Bid bid) {
+        List<Bid> sortedBids = ourEstimatedProfile.getBids();
+        List<Double> similarityList = new ArrayList<>();
+        double numberOfStep = 3;
+        for (int i = 1; i <= numberOfStep; i++) {
+            double numberOfIssue = 0;
+            double similarity = 0;
+            Bid compare = sortedBids.get(sortedBids.size() - i);
+            for (String issue : bid.getIssues()) {
+                numberOfIssue++;
+                if (compare.getValue(issue).equals(bid.getValue(issue))) {
+                    similarity++;
+                }
+            }
+            similarity /= numberOfIssue;
+            similarityList.add(similarity);
+        }
+        double totalAverage = 0;
+        for (int i = 0; i < similarityList.size(); i++) {
+            double average = similarityList.get(i);
+            totalAverage += average;
+        }
+        totalAverage /= similarityList.size();
+        if (totalAverage > 0.62) {
+            getReporter().log(Level.INFO, "Total AVERAGE win" + totalAverage);
+            return totalAverage;
+
+        }
+        return 0;
+    }
+
 
     private Action doWeAccept() {
         if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound) {
             getReporter().log(Level.INFO, "---" + me + " I am going to accept if the offer is better for me");
         }
-        if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound
-                && oppImpMap.getImportance(lastReceivedBid) * min(1, acceptanceLowerBound + 0.075) < impMap.getImportance(lastReceivedBid)) {
+        if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound && checkSimilarity(lastReceivedBid) > 0.49
+                && oppImpMap.getImportance(lastReceivedBid) * min(1, acceptanceLowerBound + 0.08) < impMap.getImportance(lastReceivedBid)) {
             getReporter().log(Level.INFO, "---" + me + " I accept the offer");
             return new Accept(me, lastReceivedBid);
         }
@@ -233,7 +271,7 @@ public class Group3 extends DefaultParty {
     private void strategySelection() throws IOException {
 
         // 6.6 means lower bound is set to 0.8 in time 1
-        this.acceptanceLowerBound = (1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 6.6)) + lostElicitScore.doubleValue();
+        this.acceptanceLowerBound = (1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 5)) + lostElicitScore.doubleValue();
         getReporter().log(Level.INFO, "----> Time :" + time + "  Acceptance Lower Bound:" + this.acceptanceLowerBound + "Max " + max(0, 2 * (0.5 - this.time)) + "pow: " + pow(min(0, 2 * (0.5 - this.time)), 2));
         this.opponentEstimatedProfile.updateBid(counterOffer);
         this.oppImpMap.update(opponentEstimatedProfile);
