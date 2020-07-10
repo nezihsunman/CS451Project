@@ -16,6 +16,7 @@ public class ImpMap {
 	private Domain domain;
 	HashMap<String, List<ImpUnit>> issueValueImpMap;
 	HashMap<String,Double> issueImpMap;
+	SimpleLinearOrdering estimatedProfile;
 
 	// Importance map
 	public ImpMap(Profile profile) {
@@ -26,33 +27,45 @@ public class ImpMap {
 	public void update(SimpleLinearOrdering estimatedProfile) {
 		renewMaps();
 
+		this.estimatedProfile = estimatedProfile;
+
 		List<Bid> sortedBids = estimatedProfile.getBids();
 
 		for(int bidIndex = 0; bidIndex < sortedBids.size(); bidIndex++){
 			Bid currentBid = sortedBids.get(bidIndex);
-			Bid nextBid = null;
-			if(bidIndex < sortedBids.size() - 1)
-				nextBid = sortedBids.get(bidIndex + 1);
-			// If bid is send by opponent closer to the start time, then importance is set to high
 			double bidImportance = estimatedProfile.getUtility(currentBid).doubleValue();
 			for (String issue : currentBid.getIssues()) {
-
-				if(nextBid != null){
-					if(currentBid.getValue(issue).equals(nextBid.getValue(issue)))
-						issueImpMap.put(issue, issueImpMap.get(issue) + bidImportance);
-				}
-				else
-					issueImpMap.put(issue, issueImpMap.get(issue) + bidImportance);
-
 				List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
 				for (ImpUnit currentUnit : currentIssueList) {
 					if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
 						currentUnit.importanceWeight += bidImportance;
 						currentUnit.count += 1;
+						currentUnit.importanceList.add(bidImportance);
 						break;
 					}
 				}
 			}
+		}
+
+		for (String issue : issueImpMap.keySet()) {
+			double issueImp = 0.0;
+			List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
+			for (ImpUnit currentUnit : currentIssueList) {
+				if(currentUnit.count != 0){
+					double issueValueImp = 0.0;
+					double issueValueAvg = currentUnit.importanceWeight / currentUnit.count;
+					for (double IssueUnitImp : currentUnit.importanceList) {
+						issueValueImp += Math.pow((IssueUnitImp - issueValueAvg), 2);
+					}
+					issueValueImp /= currentUnit.count;
+					issueImp += issueValueImp;
+				}
+			}
+
+			if(issueImp != 0){
+				issueImp = 1 / Math.sqrt(issueImp);
+			}
+			issueImpMap.put(issue, issueImp);
 		}
 
 		for (String issue : issueImpMap.keySet()) {
@@ -67,6 +80,11 @@ public class ImpMap {
 				currentUnit.importanceWeight /= maxIssueValue;
 			}
 		}
+
+
+		/*Collections.sort(testList);*/
+
+
 	}
 
 	private void renewMaps(){
@@ -85,6 +103,8 @@ public class ImpMap {
 	}
 
 	public double getSimilarity(Bid bid) {
+		Bid maxBid = estimatedProfile.getBids().get(estimatedProfile.getBids().size()-1);
+		Bid minBid = estimatedProfile.getBids().get(0);
 
 		double bidImportance = 0.0;
 		double sumIssueImp = 0.0;
@@ -95,7 +115,15 @@ public class ImpMap {
 			List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
 			for (ImpUnit currentUnit : currentIssueList) {
 				if (currentUnit.valueOfIssue.equals(bid.getValue(issue))) {
-					bidImportance += (issueImpMap.get(issue)/sumIssueImp) * currentUnit.importanceWeight;
+					if(currentUnit.valueOfIssue.equals(maxBid.getValue(issue))){
+						bidImportance += (issueImpMap.get(issue)/sumIssueImp);
+					}
+					else if(currentUnit.valueOfIssue.equals(minBid.getValue(issue))){
+						bidImportance += 0;
+					}
+					else{
+						bidImportance += (issueImpMap.get(issue)/sumIssueImp) * 0.5;
+					}
 					break;
 				}
 			}
