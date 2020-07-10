@@ -121,6 +121,9 @@ public class ImpMap {
 
 		List<Bid> sortedBids = estimatedProfile.getBids();
 
+		// JUST TO TEST
+		numFirstBids = sortedBids.size()-1;
+
 		for(int bidIndex = (sortedBids.size()-1) - numFirstBids; bidIndex < sortedBids.size(); bidIndex++){
 			Bid currentBid = sortedBids.get(bidIndex);
 			for (String issue : currentBid.getIssues()) {
@@ -137,7 +140,7 @@ public class ImpMap {
 		}
 
 		// JUST TO TEST
-		numLastBids = 1;
+		numLastBids = 0;
 
 		for(int bidIndex = 0; bidIndex < numLastBids; bidIndex++){
 			Bid currentBid = sortedBids.get(bidIndex);
