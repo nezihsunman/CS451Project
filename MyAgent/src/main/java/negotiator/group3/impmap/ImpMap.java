@@ -70,7 +70,7 @@ public class ImpMap {
 			}
 		}
 
-		double issueChangeLoss = 1 / (2 * domain.getIssues().size());
+		double issueChangeLoss = 1 / 2 * (domain.getIssues().size());
 		int changeRest = (int)((1 - minUtility) / issueChangeLoss);
 
 		int changedBid = 0;
