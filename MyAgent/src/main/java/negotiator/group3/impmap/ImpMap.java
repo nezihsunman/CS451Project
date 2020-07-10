@@ -14,14 +14,163 @@ import java.util.*;
 public class ImpMap {
 
 	private Domain domain;
-	HashMap<String, List<ImpUnit>> issueValueImpMap;
-	HashMap<String,Double> issueImpMap;
-	SimpleLinearOrdering estimatedProfile;
+	private HashMap<String, List<ImpUnit>> issueValueImpMap;
+	private HashMap<String,Double> issueImpMap;
+	private SimpleLinearOrdering estimatedProfile;
+	private Bid maxImpBid;
+	private Bid minImpBid;
+	private HashMap<String, List<Value>> availableValues;
+	private HashMap<String, List<Value>> forbiddenValues;
+	private List<Integer> randomFoundValueList;
+	private final Random random = new Random();
+	private List<String> issueList = new ArrayList<>();
+
 
 	// Importance map
 	public ImpMap(Profile profile) {
 		this.domain = profile.getDomain();
+		for (String issue : domain.getIssues()) {
+			issueList.add(issue);
+		}
 		renewMaps();
+	}
+
+	public boolean isCompatibleWithSimilarity(Bid bid, int numFirstBids, int numLastBids, double minUtility){
+		renewLists();
+
+		List<Bid> sortedBids = estimatedProfile.getBids();
+
+		for(int bidIndex = (sortedBids.size()-1) - numFirstBids; bidIndex < sortedBids.size(); bidIndex++){
+			Bid currentBid = sortedBids.get(bidIndex);
+			for (String issue : currentBid.getIssues()) {
+				List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
+				for (ImpUnit currentUnit : currentIssueList) {
+					if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
+						if(!availableValues.get(issue).contains(currentBid.getValue(issue))){
+							availableValues.get(issue).add(currentBid.getValue(issue));
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		for(int bidIndex = 0; bidIndex < numLastBids; bidIndex++){
+			Bid currentBid = sortedBids.get(bidIndex);
+			for (String issue : currentBid.getIssues()) {
+				List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
+				for (ImpUnit currentUnit : currentIssueList) {
+					if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
+						if(!forbiddenValues.get(issue).contains(currentBid.getValue(issue))){
+							forbiddenValues.get(issue).add(currentBid.getValue(issue));
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		double issueChangeLoss = 1 / (2 * domain.getIssues().size());
+		int changeRest = (int)((1 - minUtility) / issueChangeLoss);
+
+		int changedBid = 0;
+
+		for (String issue : bid.getIssues()) {
+			if(!availableValues.get(issue).contains(bid.getValue(issue)) || forbiddenValues.get(issue).contains(bid.getValue(issue))){
+				return false;
+			}
+			else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+				changedBid++;
+			}
+		}
+
+		if(changedBid >= changeRest){
+			return false;
+		}
+		return true;
+	}
+
+	public Bid foundCompatibleWithSimilarity(int numFirstBids, int numLastBids, double minUtility){
+		renewLists();
+
+		List<Bid> sortedBids = estimatedProfile.getBids();
+
+		for(int bidIndex = (sortedBids.size()-1) - numFirstBids; bidIndex < sortedBids.size(); bidIndex++){
+			Bid currentBid = sortedBids.get(bidIndex);
+			for (String issue : currentBid.getIssues()) {
+				List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
+				for (ImpUnit currentUnit : currentIssueList) {
+					if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
+						if(!availableValues.get(issue).contains(currentBid.getValue(issue))){
+							availableValues.get(issue).add(currentBid.getValue(issue));
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		for(int bidIndex = 0; bidIndex < numLastBids; bidIndex++){
+			Bid currentBid = sortedBids.get(bidIndex);
+			for (String issue : currentBid.getIssues()) {
+				List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
+				for (ImpUnit currentUnit : currentIssueList) {
+					if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
+						if(!forbiddenValues.get(issue).contains(currentBid.getValue(issue))){
+							forbiddenValues.get(issue).add(currentBid.getValue(issue));
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		double issueChangeLoss = 1 / (2 * domain.getIssues().size());
+		int changeRest = (int)((1 - minUtility) / issueChangeLoss);
+		if(changeRest > domain.getIssues().size()){
+			changeRest = domain.getIssues().size();
+		}
+		randomFoundValueList = new ArrayList<>();
+
+		for(int i = 0; i< changeRest; i++){
+			while(true){
+				int randNum = random.nextInt(domain.getIssues().size());
+				if(!randomFoundValueList.contains(randNum) /*&& availableValues.get(issueList.get(randNum)).size() > 1*/){
+					randomFoundValueList.add(randNum);
+					break;
+				}
+			}
+		}
+
+		HashMap<String, Value> generatedBidMap = new HashMap<>();
+
+		for(int i = 0; i< domain.getIssues().size(); i++){
+			String currentIssue = this.issueList.get(i);
+			if(!randomFoundValueList.contains(i)){
+				generatedBidMap.put(currentIssue, maxImpBid.getValue(currentIssue));
+			}
+			else{
+				boolean allAvailablesForbidden = true;
+				for(Value issueValue: this.availableValues.get(currentIssue)){
+					if(!this.forbiddenValues.get(currentIssue).contains(issueValue)){
+						allAvailablesForbidden = false;
+					}
+				}
+				List<Value> availableIssueValueList = availableValues.get(currentIssue);
+				int randNum = random.nextInt(availableIssueValueList.size());
+				if(allAvailablesForbidden == false){
+					while (true){
+						randNum = random.nextInt(availableIssueValueList.size());
+						if(!this.forbiddenValues.get(currentIssue).contains(availableIssueValueList.get(randNum))){
+							break;
+						}
+					}
+				}
+				generatedBidMap.put(currentIssue, availableIssueValueList.get(randNum));
+			}
+		}
+
+		return new Bid(generatedBidMap);
 	}
 
 	public void update(SimpleLinearOrdering estimatedProfile) {
@@ -29,7 +178,11 @@ public class ImpMap {
 
 		this.estimatedProfile = estimatedProfile;
 
+
 		List<Bid> sortedBids = estimatedProfile.getBids();
+
+		this.maxImpBid = sortedBids.get(sortedBids.size() - 1);
+		this.minImpBid = sortedBids.get(0);
 
 		for(int bidIndex = 0; bidIndex < sortedBids.size(); bidIndex++){
 			Bid currentBid = sortedBids.get(bidIndex);
@@ -81,10 +234,6 @@ public class ImpMap {
 			}
 		}
 
-
-		/*Collections.sort(testList);*/
-
-
 	}
 
 	private void renewMaps(){
@@ -102,33 +251,14 @@ public class ImpMap {
 		}
 	}
 
-	public double getSimilarity(Bid bid) {
-		Bid maxBid = estimatedProfile.getBids().get(estimatedProfile.getBids().size()-1);
-		Bid minBid = estimatedProfile.getBids().get(0);
-
-		double bidImportance = 0.0;
-		double sumIssueImp = 0.0;
-		for (String issue : bid.getIssues()) {
-			sumIssueImp += issueImpMap.get(issue);
+	private void renewLists(){
+		availableValues = new HashMap<>();
+		forbiddenValues = new HashMap<>();
+		// Create empty importance map
+		for (String issue : domain.getIssues()) {
+			availableValues.put(issue, new ArrayList<>());
+			forbiddenValues.put(issue, new ArrayList<>());
 		}
-		for (String issue : bid.getIssues()){
-			List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
-			for (ImpUnit currentUnit : currentIssueList) {
-				if (currentUnit.valueOfIssue.equals(bid.getValue(issue))) {
-					if(currentUnit.valueOfIssue.equals(maxBid.getValue(issue))){
-						bidImportance += (issueImpMap.get(issue)/sumIssueImp);
-					}
-					else if(currentUnit.valueOfIssue.equals(minBid.getValue(issue))){
-						bidImportance += 0;
-					}
-					else{
-						bidImportance += (issueImpMap.get(issue)/sumIssueImp) * 0.5;
-					}
-					break;
-				}
-			}
-		}
-		return bidImportance;
 	}
 
 	public Bid leastKnownBidGenerator(AllBidsList allbids) throws IOException {
