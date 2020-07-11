@@ -196,7 +196,7 @@ public class ImpMap {
 		}
 
 		double issueChangeLoss = 1.0 / domain.getIssues().size();
-		int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1;
+		int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1 /*DEBUG*/ + 1;
 
 		if(changeRest > domain.getIssues().size()){
 			changeRest = domain.getIssues().size();
