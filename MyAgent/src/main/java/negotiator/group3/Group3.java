@@ -13,7 +13,6 @@ import geniusweb.profileconnection.ProfileInterface;
 import geniusweb.progress.Progress;
 import geniusweb.progress.ProgressRounds;
 import negotiator.group3.impmap.ImpMap;
-import negotiator.group3.impmap.ImpUnit;
 import negotiator.group3.impmap.OppImpMap;
 import negotiator.group3.linearorder.OppSimpleLinearOrdering;
 import negotiator.group3.linearorder.SimpleLinearOrdering;
@@ -88,26 +87,21 @@ public class Group3 extends DefaultParty {
             if (info instanceof Settings) {
                 Settings settings = (Settings) info;
                 init(settings);
-                getReporter().log(Level.INFO, "---" + me + " Setting initialization is done");
             } else if (info instanceof ActionDone) {
                 Action lastReceivedAction = ((ActionDone) info).getAction();
                 if (lastReceivedAction instanceof Offer) {
-                    getReporter().log(Level.INFO, "---" + me + "   Offer came:" + ((Offer) lastReceivedAction).getBid());
                     lastReceivedBid = ((Offer) lastReceivedAction).getBid();
                 } else if (lastReceivedAction instanceof Comparison) {
                     ourEstimatedProfile = ourEstimatedProfile.with(((Comparison) lastReceivedAction).getBid(), ((Comparison) lastReceivedAction).getWorse());
-                    getReporter().log(Level.INFO, "---" + me + " Comparison done for bid: " + ((Comparison) lastReceivedAction).getBid());
                     myTurn();
                 }
             } else if (info instanceof YourTurn) {
-                getReporter().log(Level.INFO, "---" + me + "  Your Turn info has received with bid: " + lastReceivedBid);
                 if (progress instanceof ProgressRounds) {
                     progress = ((ProgressRounds) progress).advance();
                 }
                 myTurn();
 
             } else if (info instanceof Finished) {
-                getReporter().log(Level.INFO, "Final outcome:" + info);
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to handle info", e);
@@ -123,8 +117,6 @@ public class Group3 extends DefaultParty {
             throw new UnsupportedOperationException(
                     "Only DefaultPartialOrdering supported");
         } else if (profileint.getProfile() instanceof PartialOrdering) {
-
-            getReporter().log(Level.INFO, "---" + me + " Partial profile has received");
 
             PartialOrdering partialprofile = (PartialOrdering) profileint.getProfile();
 
@@ -146,12 +138,10 @@ public class Group3 extends DefaultParty {
     }
 
     private void myTurn() throws IOException {
-        getReporter().log(Level.INFO, "---" + me + " entered into myTurn");
         time = progress.get(System.currentTimeMillis());
         prevReceivedBid = counterOffer;
         counterOffer = lastReceivedBid;
         Action action = null;
-        getReporter().log(Level.INFO, "---" + me + " Elicitation check ended");
         if (elicitBid != null && counterOffer != null && prevReceivedBid != null && doWeElicitateCheck()) {
             doWeElicitate = true;
             lostElicitScore.add(elicitationCost);
@@ -161,35 +151,26 @@ public class Group3 extends DefaultParty {
             action = new ElicitComparison(me, counterOffer, ourEstimatedProfile.getBids());
             elicitBid = null;
             this.doWeElicitate = false;
-            getReporter().log(Level.INFO, "---" + me + " Elicit bit is sent to elicitation");
         } else {
             if (counterOffer != null) {
                 strategySelection();
-                getReporter().log(Level.INFO, "---" + me + "  Strategy selection is finished");
-
-                getReporter().log(Level.INFO, "---" + me + " doWeEndTheNegotiation?");
                 //if not Accepted return null
                 action = doWeEndTheNegotiation();
 
                 if (action == null) {
-                    getReporter().log(Level.INFO, "---" + me + " doWeAcceptTheOfferedBid?");
                     //if not Accepted return null
                     action = doWeAccept();
                 }
             }
         }
         if (action == null) {
-            getReporter().log(Level.INFO, "---" + me + " Selecting an offer");
             action = makeAnOffer(time);
-            getReporter().log(Level.INFO, "---" + me + " offer is selected");
         }
         getConnection().send(action);
-        getReporter().log(Level.INFO, "---" + me + " action is sent as: " + action);
     }
 
     private Action doWeEndTheNegotiation() {
         if (reservationImportanceRatio > 0.85) {
-            getReporter().log(Level.INFO, "---" + me + " Negotiation is ended with the method doWeNeedNegotiation");
             return new EndNegotiation(me);
         }
         return null;
@@ -202,39 +183,67 @@ public class Group3 extends DefaultParty {
 
     private Action makeAnOffer(double time) throws IOException {
         ourOffer = null;
-        double bidImportanceHigherBound = 1;
-        if (time <= 0.2) {
-            bidImportanceHigherBound = -1600 * time * time + 31.6 * time + 0.856;
+        BigDecimal bidImportanceLowerBound = BigDecimal.valueOf(0.8);
+        BigDecimal bidImportanceHigherBound = BigDecimal.valueOf(1);
+        BigDecimal time1 = BigDecimal.valueOf(time);
+        BigDecimal time2 = time1.multiply(time1);
+        BigDecimal time3 = time2.multiply(time1);
+        if (time <= 0.01) {
+            bidImportanceHigherBound = BigDecimal.valueOf(0.91);
+            bidImportanceLowerBound = BigDecimal.valueOf(0.87);
+            getReporter().log(Level.INFO, "---" + me + "Thresh hold first offer:" + bidImportanceLowerBound + "high" + bidImportanceHigherBound);
+        } else if (time <= 0.2) {
+            bidImportanceHigherBound = time2.multiply(BigDecimal.valueOf(-8.8571)).add(time1.multiply(BigDecimal.valueOf(1.871))).add(BigDecimal.valueOf(0.9017));
+
+            bidImportanceLowerBound = bidImportanceHigherBound.subtract(BigDecimal.valueOf(0.05));
         } else if (time <= 0.4) {
-            bidImportanceHigherBound = -0.0967 * time * time * time + 0.735 * time * time - 1.6683 * time + 2;
+            BigDecimal function = time2.multiply(BigDecimal.valueOf(-0.0107)).add(time1.multiply(BigDecimal.valueOf(0.0733)));
+
+            bidImportanceHigherBound = function.add(BigDecimal.valueOf(0.868));
+
+            bidImportanceLowerBound = function.add(BigDecimal.valueOf(0.83));
 
         } else if (time <= 0.6) {
-            bidImportanceHigherBound = -0.0429 * time * time * time * time + 0.5225 * time * time * time - 2.1921 * time * time + 3.6625 * time - 1.05;
+            BigDecimal function1 = time2.multiply(BigDecimal.valueOf(0.315)).add(time1.multiply(BigDecimal.valueOf(-0.7767)));
+            BigDecimal function = time3.multiply(BigDecimal.valueOf(-0.0383)).add(function1);
+            bidImportanceHigherBound = function.add(BigDecimal.valueOf(1.5));
+
+            bidImportanceLowerBound = function.add(BigDecimal.valueOf(1.2));
 
         } else if (time <= 0.8) {
-            bidImportanceHigherBound = -0.0333 * time * time * time + 0.285 * time * time - 0.7217 * time + 1.42;
+            BigDecimal function = (time3.multiply(BigDecimal.valueOf(-0.0383))).add(time2.multiply(BigDecimal.valueOf(0.315))).add(time1.multiply(BigDecimal.valueOf(-0.7767)));
+            bidImportanceHigherBound = function.add(BigDecimal.valueOf(1.32));
+            bidImportanceLowerBound = function.add(BigDecimal.valueOf(1.29));
 
         } else if (time <= 1) {
-            bidImportanceHigherBound = 0.0117 * time * time * time - 0.1186 * time * time + 0.3398 * time + 0.64;
+            BigDecimal function = (time3.multiply(BigDecimal.valueOf(0.0033))).add(time2.multiply(BigDecimal.valueOf(-0.0357))).add(time1.multiply(BigDecimal.valueOf(0.111)));
+            bidImportanceHigherBound = function.add(BigDecimal.valueOf(0.842));
+
+            bidImportanceLowerBound = function.add(BigDecimal.valueOf(0.79));
 
         }
-
-        double bidImportanceLowerBound = ((-3.34 * time * time) + (3.33 * time) + 0.85);
+        getReporter().log(Level.INFO, "---" + me + "BidImportanceHigherBound : " + bidImportanceHigherBound + "Lover Bound " + bidImportanceLowerBound);
         while (true) {
             for (int i = 0; i < allBidSize.intValue(); i++) {
                 Bid testBid = randomBidGenerator();
-                if (impMap.getImportance(testBid) > bidImportanceLowerBound && impMap.getImportance(testBid) < bidImportanceHigherBound) {
+                double impMapImportanceForMe = impMap.getImportance(testBid);
+                double similarityRatio = checkSimilarity(testBid);
+                if (impMapImportanceForMe >= bidImportanceLowerBound.doubleValue() && impMapImportanceForMe <= bidImportanceHigherBound.doubleValue() && (similarityRatio >= 0.46 || impMapImportanceForMe >= 0.94)) {
                     ourOffer = testBid;
-                    if (impMap.getImportance(testBid) > oppImpMap.getImportance(testBid) && oppImpMap.getImportance(testBid) > 0.5) {
+                    if (impMapImportanceForMe > oppImpMap.getImportance(testBid) + 0.15) {
                         break;
                     }
                 }
             }
+            if (bidImportanceLowerBound.doubleValue() >= 0.89) {
+                bidImportanceLowerBound = bidImportanceLowerBound.subtract(BigDecimal.valueOf(0.04));
+            }
             if (ourOffer != null) break;
-            bidImportanceLowerBound -= 0.02;
+
         }
-        getReporter().log(Level.INFO, "---" + me + " Similarity Case New Offer" + oppImpMap.getImportance(ourOffer) + "ImpMap: " + impMap.getImportance(ourOffer));
         offerRed.put(ourOffer, "offered");
+        getReporter().log(Level.INFO, "Time: " + time);
+        getReporter().log(Level.INFO, "---" + me + " Similarity Case New Offer" + oppImpMap.getImportance(ourOffer) + "ImpMap: " + impMap.getImportance(ourOffer));
         getReporter().log(Level.INFO, "Offered Bid Size" + offerRed.size());
         return new Offer(me, ourOffer);
     }
@@ -262,22 +271,25 @@ public class Group3 extends DefaultParty {
             totalAverage += average;
         }
         totalAverage /= similarityList.size();
-        if (totalAverage > 0.62) {
-            getReporter().log(Level.INFO, "Total AVERAGE win" + totalAverage);
-            return totalAverage;
-
-        }
-        return 0;
+        return totalAverage;
     }
 
 
     private Action doWeAccept() {
-        if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound) {
-            getReporter().log(Level.INFO, "---" + me + " I am going to accept if the offer is better for me");
+        if (oppImpMap.getImportance(lastReceivedBid) < (impMap.getImportance(lastReceivedBid) - 0.02) && impMap.getImportance(lastReceivedBid) > 0.80) {
+            getReporter().log(Level.INFO, "---" + me + " It is acceptable: " + oppImpMap.getImportance(lastReceivedBid) + " - " + impMap.getImportance(lastReceivedBid));
         }
-        if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound && checkSimilarity(lastReceivedBid) > 0.49
-                && oppImpMap.getImportance(lastReceivedBid) * min(1, acceptanceLowerBound + 0.08) < impMap.getImportance(lastReceivedBid)) {
-            getReporter().log(Level.INFO, "---" + me + " I accept the offer");
+
+        if (lastReceivedBid.equals(ourEstimatedProfile.getBids().get(ourEstimatedProfile.getBids().size() - 1))) {
+            getReporter().log(Level.INFO, "---" + me + " I accept first bid offer");
+            return new Accept(me, lastReceivedBid);
+        } else if (lastReceivedBid.equals(ourEstimatedProfile.getBids().get(ourEstimatedProfile.getBids().size() - 2))) {
+            getReporter().log(Level.INFO, "---" + me + " I accept second bid offer");
+            return new Accept(me, lastReceivedBid);
+        }
+        if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound && checkSimilarity(lastReceivedBid) >= 0.43
+                && oppImpMap.getImportance(lastReceivedBid) < (impMap.getImportance(lastReceivedBid) - 0.02)) {
+            getReporter().log(Level.INFO, "---" + me + " I accept the offer" + "similarity: " + checkSimilarity(lastReceivedBid));
             return new Accept(me, lastReceivedBid);
         }
         return null;
@@ -286,9 +298,7 @@ public class Group3 extends DefaultParty {
 
     private void strategySelection() throws IOException {
 
-        // 6.6 means lower bound is set to 0.8 in time 1
-        this.acceptanceLowerBound = (1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 5)) + lostElicitScore.doubleValue();
-        getReporter().log(Level.INFO, "----> Time :" + time + "  Acceptance Lower Bound:" + this.acceptanceLowerBound + "Max " + max(0, 2 * (0.5 - this.time)) + "pow: " + pow(min(0, 2 * (0.5 - this.time)), 2));
+        this.acceptanceLowerBound = (1 - (pow(min(0.1, 2 * (0.5 - this.time)), 2) / 5)) + lostElicitScore.doubleValue();
         this.opponentEstimatedProfile.updateBid(counterOffer);
         this.oppImpMap.update(opponentEstimatedProfile);
 
@@ -297,8 +307,6 @@ public class Group3 extends DefaultParty {
             getReservationRatio();
             elicitBid = this.impMap.leastKnownBidGenerator(allbids);
         }
-
-        getReporter().log(Level.INFO, "----> Time :" + time + "  Acceptance Lower Bound:" + acceptanceLowerBound);
         getReporter().log(Level.INFO, "----> Bid importance for opponent :" + oppImpMap.getImportance(counterOffer));
         getReporter().log(Level.INFO, "----> Bid importance for me :" + impMap.getImportance(counterOffer));
     }
