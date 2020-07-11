@@ -40,7 +40,7 @@ public class ImpMap {
 		renewMaps();
 	}
 
-	public boolean isCompatibleWithSimilarity(Bid bid, int numFirstBids, int numLastBids, double minUtility){
+	public boolean isCompatibleWithSimilarity(Bid bid, int numFirstBids, int numLastBids, double minUtility, String callType){
 		renewLists();
 
 		List<Bid> sortedBids = estimatedProfile.getBids();
@@ -64,7 +64,7 @@ public class ImpMap {
 		}
 
 		// JUST TO TEST
-		numLastBids = 1;
+		/*numLastBids = 1;*/
 
 		for(int bidIndex = 0; bidIndex < numLastBids; bidIndex++){
 			Bid currentBid = sortedBids.get(bidIndex);
@@ -72,7 +72,7 @@ public class ImpMap {
 				List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
 				for (ImpUnit currentUnit : currentIssueList) {
 					if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
-						if(!forbiddenValues.get(issue).contains(currentBid.getValue(issue))){
+						if(!forbiddenValues.get(issue).contains(currentBid.getValue(issue)) && !availableValues.get(issue).contains(currentBid.getValue(issue))){
 							forbiddenValues.get(issue).add(currentBid.getValue(issue));
 						}
 						break;
@@ -85,7 +85,7 @@ public class ImpMap {
 		reporter.log( Level.INFO, "forbiddenValues:"+ forbiddenValues);*/
 
 		double issueChangeLoss = 1.0 / domain.getIssues().size();
-		int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1 /*DEBUG*/ + 1;
+		int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1;
 
 		if(changeRest > domain.getIssues().size()){
 			changeRest = domain.getIssues().size();
@@ -93,6 +93,7 @@ public class ImpMap {
 
 		int changedIssueBest = 0;
 		int changedIssueWorst = 0;
+		int changedNotAvailable = 0;
 
 
 		Set<Map.Entry<String, Double>> sortedIssueMapSet = sortedIssueImpMap.entrySet();
@@ -109,31 +110,39 @@ public class ImpMap {
 			}
 
 			List<Value> availableIssueValueList = availableValues.get(issue);
+
 			if(allAvailablesForbidden == false){
 				if(i < (sortedIssueArrList.size() + 1)/2){
-					if(!availableValues.get(issue).contains(bid.getValue(issue))){
-						return false;
-					}
-					else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
-						changedIssueWorst++;
+					if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+						if(!availableIssueValueList.contains(bid.getValue(issue))){
+							changedNotAvailable++;
+						}
+						else{
+							changedIssueWorst++;
+						}
 					}
 				}
 				else{
-					if(!availableValues.get(issue).contains(bid.getValue(issue)) || forbiddenValues.get(issue).contains(bid.getValue(issue))){
+					if (forbiddenValues.get(issue).contains(bid.getValue(issue))){
 						return false;
 					}
 					else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
-						changedIssueBest++;
+						if(!availableIssueValueList.contains(bid.getValue(issue))){
+							changedNotAvailable++;
+						}
+						else{
+							changedIssueBest++;
+						}
 					}
 				}
 			}
 
 			else{
-				if(!availableValues.get(issue).contains(bid.getValue(issue))){
-					return false;
-				}
-				else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
-					if(i < (sortedIssueArrList.size() + 1)/2){
+				if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+					if(!availableValues.get(issue).contains(bid.getValue(issue))){
+						changedNotAvailable++;
+					}
+					else if(i < (sortedIssueArrList.size() + 1)/2){
 						changedIssueWorst++;
 					}
 					else{
@@ -146,11 +155,24 @@ public class ImpMap {
 		int changeRestBest = changeRest / 2;
 		int changeRestWorst = (changeRest / 2) + (changeRest % 2);
 
-		if(changedIssueBest > changeRestBest || changedIssueWorst > changeRestWorst) {
-			return false;
+		if(callType.equals("ACCEPT")){
+			reporter.log( Level.INFO, "CHECKED ACCEPTION Bid: "+ bid + " MAX BID: " + maxImpBid);
+			reporter.log( Level.INFO, "changedIssueBest: "+ changedIssueBest + " changedIssueWorst: "+ changedIssueWorst + " changedNotAvailable: "+ changedNotAvailable);
 		}
 
-		return true;
+		if((changedIssueBest + changedNotAvailable) <= changeRestBest){
+			if((changedIssueWorst + /* 2 * */ changedNotAvailable + changedIssueBest) <= (changeRestBest + changeRestWorst)){
+				if(callType.equals("OFFER")){
+					reporter.log( Level.INFO, "OFFERED Bid: "+ bid + " MAX BID: " + maxImpBid);
+					reporter.log( Level.INFO, "changedIssueBest: "+ changedIssueBest + " changedIssueWorst: "+ changedIssueWorst + " changedNotAvailable: "+ changedNotAvailable);
+				}
+				return true;
+
+			}
+		}
+
+
+		return false;
 	}
 
 
@@ -178,7 +200,7 @@ public class ImpMap {
 		}
 
 		// JUST TO TEST
-		numLastBids = 1;
+		/*numLastBids = 1;*/
 
 		for(int bidIndex = 0; bidIndex < numLastBids; bidIndex++){
 			Bid currentBid = sortedBids.get(bidIndex);
@@ -186,7 +208,7 @@ public class ImpMap {
 				List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
 				for (ImpUnit currentUnit : currentIssueList) {
 					if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
-						if(!forbiddenValues.get(issue).contains(currentBid.getValue(issue))){
+						if(!forbiddenValues.get(issue).contains(currentBid.getValue(issue)) && !availableValues.get(issue).contains(currentBid.getValue(issue))){
 							forbiddenValues.get(issue).add(currentBid.getValue(issue));
 						}
 						break;
@@ -196,7 +218,7 @@ public class ImpMap {
 		}
 
 		double issueChangeLoss = 1.0 / domain.getIssues().size();
-		int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1 /*DEBUG*/ + 1;
+		int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1;
 
 		if(changeRest > domain.getIssues().size()){
 			changeRest = domain.getIssues().size();

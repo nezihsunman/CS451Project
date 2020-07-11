@@ -96,7 +96,7 @@ public class Group3 extends DefaultParty {
             } else if (info instanceof ActionDone) {
                 Action lastReceivedAction = ((ActionDone) info).getAction();
                 if (lastReceivedAction instanceof Offer) {
-                    /*getReporter().log(Level.INFO, "---" + me + "   Offer came:" + ((Offer) lastReceivedAction).getBid());*/
+                    getReporter().log(Level.INFO, "---" + "SIMILARITY" + "   Offer came:" + ((Offer) lastReceivedAction).getBid());
                     lastReceivedBid = ((Offer) lastReceivedAction).getBid();
                 } else if (lastReceivedAction instanceof Comparison) {
                     ourEstimatedProfile = ourEstimatedProfile.with(((Comparison) lastReceivedAction).getBid(), ((Comparison) lastReceivedAction).getWorse());
@@ -206,24 +206,31 @@ public class Group3 extends DefaultParty {
     }
 
     private Action makeAnOffer() throws IOException {
+
         ourOffer = null;
-        for(int i = 0; i < allBidSize.intValue() * 2; i++) {
-            ourOffer = impMap.foundCompatibleWithSimilarity(numFirstBids, numLastBids, utilityLowerBound);
-            /*if(oppImpMap.getImportance(ourOffer) < utilityLowerBound){
-                break;
-            }*/
+        double bidImportanceLowerBound = 0.9;
+        while (true) {
+            for (int i = 0; i < allBidSize.intValue(); i++) {
+                Bid testBid = randomBidGenerator();
+                if (impMap.isCompatibleWithSimilarity(testBid, numFirstBids, numLastBids, utilityLowerBound,"OFFER")) {
+                    ourOffer = testBid;
+                    break;
+                    /*if (impMap.getImportance(testBid) > oppImpMap.getImportance(testBid) && oppImpMap.getImportance(testBid) > 0.5) {
+                        break;
+                    }*/
+                }
+            }
+            if (ourOffer != null) break;
+            bidImportanceLowerBound -= 0.05;
         }
-        /*getReporter().log(Level.INFO, "---" + me + " New Offer Found: OppImp:" + oppImpMap.getImportance(ourOffer));*/
+        /*DEBUG*/
         offeredOffers.put(ourOffer, "Fantasy");
-        getReporter().log(Level.INFO, "NUMBER OF OFFERS SENT: " + offeredOffers.size());
         return new Offer(me, ourOffer);
+
     }
 
     private Action doWeAccept() {
-        if ( this.impMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, utilityLowerBound)) {
-            /*getReporter().log(Level.INFO, "---" + me + " I am going to accept if the offer is better for me");*/
-        }
-        if (this.impMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, utilityLowerBound)
+        if (this.impMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, utilityLowerBound, "ACCEPT")
                 /*&& oppImpMap.getImportance(lastReceivedBid) < utilityLowerBound*/ ){
            /* getReporter().log(Level.INFO, "---" + me + " I accept the offer");*/
             return new Accept(me, lastReceivedBid);
@@ -235,11 +242,11 @@ public class Group3 extends DefaultParty {
     private void strategySelection() throws IOException {
 
         // 6.6 means lower bound is set to 0.8 in time 1
-        this.utilityLowerBound = (1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 4)) + lostElicitScore.doubleValue();
+        this.utilityLowerBound = -pow(this.time/2, 2) + 0.95 + lostElicitScore.doubleValue();
 
         int knownBidNum = this.ourEstimatedProfile.getBids().size();
         this.numFirstBids = (int) (knownBidNum * (1 - this.utilityLowerBound)) + 1;
-        this.numLastBids = (int) (knownBidNum * 0.25) - (int)(knownBidNum * (1 - this.utilityLowerBound)) + 1;;
+        this.numLastBids = (int) (knownBidNum * 0.30) - (int)(knownBidNum * (1 - this.utilityLowerBound)) + 1;;
 
         /*getReporter().log(Level.INFO, "----> Time :" + time + "  Similarity Lower Bound:" + this.utilityLowerBound);*/
         this.opponentEstimatedProfile.updateBid(counterOffer);

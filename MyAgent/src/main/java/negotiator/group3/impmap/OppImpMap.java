@@ -265,7 +265,7 @@ public class OppImpMap {
 
         this.estimatedProfile = estimatedProfile;
 
-        reporter.log( Level.INFO, " Given Bids:  "+ estimatedProfile.getBids() );
+        /*reporter.log( Level.INFO, " Given Bids:  "+ estimatedProfile.getBids() );*/
 
 
         List<Bid> sortedBids = estimatedProfile.getBids();
