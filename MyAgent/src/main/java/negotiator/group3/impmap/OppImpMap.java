@@ -20,9 +20,7 @@ public class OppImpMap {
     private HashMap<String,Double> issueImpMap;
     private OppSimpleLinearOrdering estimatedProfile;
     private Bid maxImpBid;
-    private Bid minImpBid;
     private HashMap<String, List<Value>> availableValues;
-    private HashMap<String, List<Value>> forbiddenValues;
     private List<Integer> randomFoundValueList;
     private final Random random = new Random();
     private List<String> issueList = new ArrayList<>();
@@ -40,7 +38,7 @@ public class OppImpMap {
         renewMaps();
     }
 
-    public boolean isCompatibleWithSimilarity(Bid bid, int numFirstBids, int numLastBids, double minUtility){
+    public boolean isCompromised(Bid bid, int numFirstBids, double minUtility){
         renewLists();
 
         List<Bid> sortedBids = estimatedProfile.getBids();
@@ -48,7 +46,13 @@ public class OppImpMap {
         // JUST TO TEST
         /*numFirstBids = sortedBids.size()-1;*/
 
-        for(int bidIndex = (sortedBids.size()-1) - numFirstBids; bidIndex < sortedBids.size(); bidIndex++){
+        int firstStartIndex = (sortedBids.size()-1) - numFirstBids;
+
+        if(firstStartIndex < 0){
+            firstStartIndex = 0;
+        }
+
+        for(int bidIndex = firstStartIndex; bidIndex < sortedBids.size(); bidIndex++){
             Bid currentBid = sortedBids.get(bidIndex);
             for (String issue : currentBid.getIssues()) {
                 List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
@@ -56,24 +60,6 @@ public class OppImpMap {
                     if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
                         if(!availableValues.get(issue).contains(currentBid.getValue(issue))){
                             availableValues.get(issue).add(currentBid.getValue(issue));
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-
-        // JUST TO TEST
-        numLastBids = 0;
-
-        for(int bidIndex = 0; bidIndex < numLastBids; bidIndex++){
-            Bid currentBid = sortedBids.get(bidIndex);
-            for (String issue : currentBid.getIssues()) {
-                List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
-                for (OppImpUnit currentUnit : currentIssueList) {
-                    if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
-                        if(!forbiddenValues.get(issue).contains(currentBid.getValue(issue))){
-                            forbiddenValues.get(issue).add(currentBid.getValue(issue));
                         }
                         break;
                     }
@@ -93,6 +79,7 @@ public class OppImpMap {
 
         int changedIssueBest = 0;
         int changedIssueWorst = 0;
+        int changedNotAvailable = 0;
 
 
         Set<Map.Entry<String, Double>> sortedIssueMapSet = sortedIssueImpMap.entrySet();
@@ -100,164 +87,42 @@ public class OppImpMap {
 
         for (int i = 0; i < sortedIssueArrList.size(); i++) {
             String issue = sortedIssueArrList.get(i).getKey();
-
-            boolean allAvailablesForbidden = true;
-            for(Value issueValue: this.availableValues.get(issue)){
-                if(!this.forbiddenValues.get(issue).contains(issueValue)){
-                    allAvailablesForbidden = false;
-                }
-            }
-
             List<Value> availableIssueValueList = availableValues.get(issue);
-            if(allAvailablesForbidden == false){
-                if(i < (sortedIssueArrList.size() + 1)/2){
-                    if(!availableValues.get(issue).contains(bid.getValue(issue))){
-                        return false;
+            if(i < (sortedIssueArrList.size() + 1)/2){
+                if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+                    if(!availableIssueValueList.contains(bid.getValue(issue))){
+                        changedNotAvailable++;
                     }
-                    else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+                    else{
                         changedIssueWorst++;
                     }
                 }
-                else{
-                    if(!availableValues.get(issue).contains(bid.getValue(issue)) || forbiddenValues.get(issue).contains(bid.getValue(issue))){
-                        return false;
+            }
+            else{
+                if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+                    if(!availableIssueValueList.contains(bid.getValue(issue))){
+                        changedNotAvailable++;
                     }
-                    else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+                    else{
                         changedIssueBest++;
                     }
                 }
             }
-
-            else{
-                if(!availableValues.get(issue).contains(bid.getValue(issue))){
-                    return false;
-                }
-                else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
-                    if(i < (sortedIssueArrList.size() + 1)/2){
-                        changedIssueWorst++;
-                    }
-                    else{
-                        changedIssueBest ++;
-                    }
-                }
-            }
-
         }
         int changeRestBest = changeRest / 2;
         int changeRestWorst = (changeRest / 2) + (changeRest % 2);
 
-        if(changedIssueBest > changeRestBest || changedIssueWorst > changeRestWorst) {
-            return false;
-        }
+        reporter.log( Level.INFO, "OPP Bid: "+ bid + " OPP MAX BID: " + maxImpBid);
+        reporter.log( Level.INFO, "OPP changedIssueBest: "+ changedIssueBest + " OPP changedIssueWorst: "+ changedIssueWorst + " OPP changedNotAvailable: "+ changedNotAvailable);
 
+        if((changedIssueBest + changedNotAvailable) <= changeRestBest){
+            if((changedIssueWorst + /* 2 * */ changedNotAvailable + changedIssueBest) <= (changeRestBest + changeRestWorst)){
+                reporter.log( Level.INFO, "OPP NOT COMPROMISED");
+                return false;
+            }
+        }
+        reporter.log( Level.INFO, "OPP COMPROMISED");
         return true;
-    }
-
-    public Bid foundCompatibleWithSimilarity(int numFirstBids, int numLastBids, double minUtility){
-        renewLists();
-
-        List<Bid> sortedBids = estimatedProfile.getBids();
-
-        // JUST TO TEST
-        /*numFirstBids = sortedBids.size()-1;*/
-
-        for(int bidIndex = (sortedBids.size()-1) - numFirstBids; bidIndex < sortedBids.size(); bidIndex++){
-            Bid currentBid = sortedBids.get(bidIndex);
-            for (String issue : currentBid.getIssues()) {
-                List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
-                for (OppImpUnit currentUnit : currentIssueList) {
-                    if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
-                        if(!availableValues.get(issue).contains(currentBid.getValue(issue))){
-                            availableValues.get(issue).add(currentBid.getValue(issue));
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-
-        // JUST TO TEST
-        numLastBids = 0;
-
-        for(int bidIndex = 0; bidIndex < numLastBids; bidIndex++){
-            Bid currentBid = sortedBids.get(bidIndex);
-            for (String issue : currentBid.getIssues()) {
-                List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
-                for (OppImpUnit currentUnit : currentIssueList) {
-                    if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
-                        if(!forbiddenValues.get(issue).contains(currentBid.getValue(issue))){
-                            forbiddenValues.get(issue).add(currentBid.getValue(issue));
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-
-        double issueChangeLoss = 1.0 / domain.getIssues().size();
-        int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1;
-
-        if(changeRest > domain.getIssues().size()){
-            changeRest = domain.getIssues().size();
-        }
-
-        Set<Map.Entry<String, Double>> sortedIssueMapSet = sortedIssueImpMap.entrySet();
-        ArrayList<Map.Entry<String, Double>> sortedIssueArrList = new ArrayList<Map.Entry<String, Double>>(sortedIssueMapSet);
-
-        HashMap<String, Value> generatedBidMap = new HashMap<>();
-
-
-        /*reporter.log( Level.INFO, "KNOWN BIDS:"+ estimatedProfile.getBids().size());*/
-
-        ArrayList<Integer> changeList = new ArrayList<>();
-
-        for(int i = 0; i < changeRest; i++){
-            int randNum = random.nextInt((sortedIssueArrList.size() + 1)/2);
-            if(i % 2 == 0 ){
-                changeList.add(randNum);
-            }
-            else{
-                changeList.add(sortedIssueArrList.size() - 1 - randNum);
-            }
-        }
-
-        for (int i = 0; i < sortedIssueArrList.size(); i++) {
-            String issue = sortedIssueArrList.get(i).getKey();
-            /*reporter.log( Level.INFO, "Sorted Issues "+ i + " " + issue + " Dev: "+ sortedIssueArrList.get(i).getValue() );*/
-
-            if(!changeList.contains(i)){
-                generatedBidMap.put(issue, maxImpBid.getValue(issue));
-            }
-            else{
-                boolean allAvailablesForbidden = true;
-                for(Value issueValue: this.availableValues.get(issue)){
-                    if(!this.forbiddenValues.get(issue).contains(issueValue)){
-                        allAvailablesForbidden = false;
-                    }
-                }
-
-                List<Value> availableIssueValueList = availableValues.get(issue);
-                int randNum = random.nextInt(availableIssueValueList.size());
-                if(allAvailablesForbidden == false){
-                    while (true){
-                        randNum = random.nextInt(availableIssueValueList.size());
-                        if(i < (sortedIssueArrList.size() + 1)/2){
-                            break;
-                        }
-                        else if(!this.forbiddenValues.get(issue).contains(availableIssueValueList.get(randNum))){
-                            break;
-                        }
-                    }
-                }
-                generatedBidMap.put(issue, availableIssueValueList.get(randNum));
-
-            }
-        }
-
-		/*reporter.log( Level.INFO, "availableValues "+ availableValues);
-		reporter.log( Level.INFO, "forbiddenValues "+ forbiddenValues);*/
-
-        return new Bid(generatedBidMap);
     }
 
     public void update(OppSimpleLinearOrdering estimatedProfile) {
@@ -271,7 +136,6 @@ public class OppImpMap {
         List<Bid> sortedBids = estimatedProfile.getBids();
 
         this.maxImpBid = sortedBids.get(sortedBids.size() - 1);
-        this.minImpBid = sortedBids.get(0);
 
         for(int bidIndex = 0; bidIndex < sortedBids.size(); bidIndex++){
             Bid currentBid = sortedBids.get(bidIndex);
@@ -290,43 +154,25 @@ public class OppImpMap {
         for (String issue : issueImpMap.keySet()) {
             List<Double> issueValAvgList = new ArrayList<>();
             List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
+            double issueImp = 0.0;
             for (OppImpUnit currentUnit : currentIssueList) {
                 if(currentUnit.importanceList.size() != 0){
-                    double issueValueAvg = 0.0;
-                    for (double IssueUnitImp : currentUnit.importanceList) {
-                        issueValueAvg += IssueUnitImp;
+                    for (int i = 0; i < currentUnit.importanceList.size(); i++) {
+                        double issueUnitImp = currentUnit.importanceList.get(i);
+                        if(i != currentUnit.importanceList.size() - 1){
+                            double nextIssueUnitImp = currentUnit.importanceList.get(i + 1);
+                            if(nextIssueUnitImp != issueUnitImp){
+                                issueImp -= 1;
+                            }
+                        }
                     }
-                    issueValueAvg /= currentUnit.importanceList.size();
-                    issueValAvgList.add(issueValueAvg);
                 }
             }
-
-
-			/*reporter.log( Level.INFO, issue + " VAL AVG List "+ issueValAvgList );
-			reporter.log( Level.INFO, issue + " STDEV "+ stdev(issueValAvgList));*/
-
-            issueImpMap.put(issue, stdev(issueValAvgList));
+            issueImpMap.put(issue, issueImp);
         }
 
         sortedIssueImpMap = sortByValue(issueImpMap);
 
-    }
-
-    private double stdev (List<Double> arr)
-    {
-        double sum = 0.0;
-        for(int i = 0; i< arr.size(); i++){
-            sum += arr.get(i);
-        }
-        double mean = sum / arr.size();
-        sum = 0;
-        for (int i = 0; i < arr.size(); i++)
-        {
-            double val = arr.get(i);
-            sum += Math.pow(val - mean, 2);
-        }
-        double meanOfDiffs = sum / (double) (arr.size());
-        return Math.sqrt(meanOfDiffs);
     }
 
     private void renewMaps(){
@@ -346,11 +192,9 @@ public class OppImpMap {
 
     private void renewLists(){
         availableValues = new HashMap<>();
-        forbiddenValues = new HashMap<>();
-        // Create empty maps
+        // Create empty map
         for (String issue : domain.getIssues()) {
             availableValues.put(issue, new ArrayList<>());
-            forbiddenValues.put(issue, new ArrayList<>());
         }
     }
 

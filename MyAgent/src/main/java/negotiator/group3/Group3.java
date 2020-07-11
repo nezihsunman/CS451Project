@@ -32,6 +32,8 @@ public class Group3 extends DefaultParty {
     private int numFirstBids;
     private int numLastBids;
 
+    private int oppFirstBids;
+
     private final Random random = new Random();
 
     private Bid lastReceivedBid = null;
@@ -212,7 +214,7 @@ public class Group3 extends DefaultParty {
         while (true) {
             for (int i = 0; i < allBidSize.intValue(); i++) {
                 Bid testBid = randomBidGenerator();
-                if (impMap.isCompatibleWithSimilarity(testBid, numFirstBids, numLastBids, utilityLowerBound,"OFFER")) {
+                if (impMap.isCompatibleWithSimilarity(testBid, numFirstBids, numLastBids, utilityLowerBound,"OFFER") /*&& !oppImpMap.isCompromised(testBid, oppFirstBids, utilityLowerBound)*/) {
                     ourOffer = testBid;
                     break;
                     /*if (impMap.getImportance(testBid) > oppImpMap.getImportance(testBid) && oppImpMap.getImportance(testBid) > 0.5) {
@@ -230,9 +232,13 @@ public class Group3 extends DefaultParty {
     }
 
     private Action doWeAccept() {
-        if (this.impMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, utilityLowerBound, "ACCEPT")
-                /*&& oppImpMap.getImportance(lastReceivedBid) < utilityLowerBound*/ ){
+        if (this.impMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, 0.85, "ACCEPT") && oppImpMap.isCompromised(lastReceivedBid, oppFirstBids, 0.85)){
            /* getReporter().log(Level.INFO, "---" + me + " I accept the offer");*/
+            return new Accept(me, lastReceivedBid);
+        }
+        if (this.impMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, utilityLowerBound, "ACCEPT")
+                && oppImpMap.isCompromised(lastReceivedBid, oppFirstBids, utilityLowerBound)){
+            /* getReporter().log(Level.INFO, "---" + me + " I accept the offer");*/
             return new Accept(me, lastReceivedBid);
         }
         return null;
@@ -246,7 +252,8 @@ public class Group3 extends DefaultParty {
 
         int knownBidNum = this.ourEstimatedProfile.getBids().size();
         this.numFirstBids = (int) (knownBidNum * (1 - this.utilityLowerBound)) + 1;
-        this.numLastBids = (int) (knownBidNum * 0.30) - (int)(knownBidNum * (1 - this.utilityLowerBound)) + 1;;
+        this.numLastBids = (int) (knownBidNum * 0.30) - (int)(knownBidNum * (1 - this.utilityLowerBound)) + 1;
+        this.oppFirstBids = (int) (knownBidNum * (1 - this.utilityLowerBound)) + 1;
 
         /*getReporter().log(Level.INFO, "----> Time :" + time + "  Similarity Lower Bound:" + this.utilityLowerBound);*/
         this.opponentEstimatedProfile.updateBid(counterOffer);

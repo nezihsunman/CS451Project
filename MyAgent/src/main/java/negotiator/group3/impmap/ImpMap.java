@@ -48,7 +48,13 @@ public class ImpMap {
 		// JUST TO TEST
 		/*numFirstBids = sortedBids.size()-1;*/
 
-		for(int bidIndex = (sortedBids.size()-1) - numFirstBids; bidIndex < sortedBids.size(); bidIndex++){
+		int firstStartIndex = (sortedBids.size()-1) - numFirstBids;
+
+		if(firstStartIndex < 0){
+			firstStartIndex = 0;
+		}
+
+		for(int bidIndex = firstStartIndex; bidIndex < sortedBids.size(); bidIndex++){
 			Bid currentBid = sortedBids.get(bidIndex);
 			for (String issue : currentBid.getIssues()) {
 				List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
@@ -65,6 +71,10 @@ public class ImpMap {
 
 		// JUST TO TEST
 		/*numLastBids = 1;*/
+
+		if(numLastBids > sortedBids.size()){
+			numFirstBids = sortedBids.size();
+		}
 
 		for(int bidIndex = 0; bidIndex < numLastBids; bidIndex++){
 			Bid currentBid = sortedBids.get(bidIndex);
@@ -170,8 +180,6 @@ public class ImpMap {
 
 			}
 		}
-
-
 		return false;
 	}
 
