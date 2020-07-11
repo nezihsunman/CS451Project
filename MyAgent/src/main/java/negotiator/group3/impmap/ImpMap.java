@@ -172,11 +172,17 @@ public class ImpMap {
 
 		/*reporter.log( Level.INFO, "KNOWN BIDS:"+ estimatedProfile.getBids().size());*/
 
+		ArrayList<Integer> changeList = new ArrayList<>();
+
+		for(int i = 0; i < changeRest; i++){
+			changeList.add(random.nextInt(sortedIssueArrList.size()));
+		}
+
 		for (int i = 0; i < sortedIssueArrList.size(); i++) {
 			String issue = sortedIssueArrList.get(i).getKey();
 			/*reporter.log( Level.INFO, "Sorted Issues "+ i + " " + issue + " Dev: "+ sortedIssueArrList.get(i).getValue() );*/
 
-			if(i >= changeRest){
+			if(!changeList.contains(i)){
 				generatedBidMap.put(issue, maxImpBid.getValue(issue));
 			}
 			else{
@@ -201,6 +207,9 @@ public class ImpMap {
 
 			}
 		}
+
+		/*reporter.log( Level.INFO, "availableValues "+ availableValues);
+		reporter.log( Level.INFO, "forbiddenValues "+ forbiddenValues);*/
 
 		return new Bid(generatedBidMap);
 	}
