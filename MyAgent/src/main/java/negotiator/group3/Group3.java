@@ -137,7 +137,7 @@ public class Group3 extends DefaultParty {
             this.allBidSize = allbids.size();
             this.impMap = new ImpMap(partialprofile,getReporter());
             this.opponentEstimatedProfile = new OppSimpleLinearOrdering();
-            this.oppImpMap = new OppImpMap(partialprofile);
+            this.oppImpMap = new OppImpMap(partialprofile, getReporter());
             this.ourEstimatedProfile = new SimpleLinearOrdering(profileint.getProfile());
             orderedbids = ourEstimatedProfile.getBids();
             elicitBid = impMap.leastKnownBidGenerator(allbids);
@@ -209,9 +209,9 @@ public class Group3 extends DefaultParty {
         ourOffer = null;
         for(int i = 0; i < allBidSize.intValue() * 2; i++) {
             ourOffer = impMap.foundCompatibleWithSimilarity(numFirstBids, numLastBids, utilityLowerBound);
-            if(oppImpMap.getImportance(ourOffer) < utilityLowerBound){
+            /*if(oppImpMap.getImportance(ourOffer) < utilityLowerBound){
                 break;
-            }
+            }*/
         }
         /*getReporter().log(Level.INFO, "---" + me + " New Offer Found: OppImp:" + oppImpMap.getImportance(ourOffer));*/
         offeredOffers.put(ourOffer, "Fantasy");
@@ -224,7 +224,7 @@ public class Group3 extends DefaultParty {
             /*getReporter().log(Level.INFO, "---" + me + " I am going to accept if the offer is better for me");*/
         }
         if (this.impMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, utilityLowerBound)
-                && oppImpMap.getImportance(lastReceivedBid) < utilityLowerBound) {
+                /*&& oppImpMap.getImportance(lastReceivedBid) < utilityLowerBound*/ ){
            /* getReporter().log(Level.INFO, "---" + me + " I accept the offer");*/
             return new Accept(me, lastReceivedBid);
         }
@@ -235,7 +235,8 @@ public class Group3 extends DefaultParty {
     private void strategySelection() throws IOException {
 
         // 6.6 means lower bound is set to 0.8 in time 1
-        this.utilityLowerBound = pow(this.time/2, 2) - this.time/2 + 1 + lostElicitScore.doubleValue();
+        this.utilityLowerBound = (1 - (pow(min(0, 2 * (0.5 - this.time)), 2) / 4)) + lostElicitScore.doubleValue();
+
         int knownBidNum = this.ourEstimatedProfile.getBids().size();
         this.numFirstBids = (int) (knownBidNum * (1 - this.utilityLowerBound)) + 1;
         this.numLastBids = (int) (knownBidNum * 0.25) - (int)(knownBidNum * (1 - this.utilityLowerBound)) + 1;;

@@ -45,6 +45,9 @@ public class ImpMap {
 
 		List<Bid> sortedBids = estimatedProfile.getBids();
 
+		// JUST TO TEST
+		/*numFirstBids = sortedBids.size()-1;*/
+
 		for(int bidIndex = (sortedBids.size()-1) - numFirstBids; bidIndex < sortedBids.size(); bidIndex++){
 			Bid currentBid = sortedBids.get(bidIndex);
 			for (String issue : currentBid.getIssues()) {
@@ -82,16 +85,14 @@ public class ImpMap {
 		reporter.log( Level.INFO, "forbiddenValues:"+ forbiddenValues);*/
 
 		double issueChangeLoss = 1.0 / domain.getIssues().size();
-		int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1;
-
-		/*reporter.log( Level.INFO, "issueChangeLoss:"+ issueChangeLoss);
-		reporter.log( Level.INFO, "changeRest:"+ changeRest);*/
+		int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1 /*DEBUG*/ + 1;
 
 		if(changeRest > domain.getIssues().size()){
 			changeRest = domain.getIssues().size();
 		}
 
-		int changedBid = 0;
+		int changedIssueBest = 0;
+		int changedIssueWorst = 0;
 
 
 		Set<Map.Entry<String, Double>> sortedIssueMapSet = sortedIssueImpMap.entrySet();
@@ -99,22 +100,59 @@ public class ImpMap {
 
 		for (int i = 0; i < sortedIssueArrList.size(); i++) {
 			String issue = sortedIssueArrList.get(i).getKey();
-			if(!availableValues.get(issue).contains(bid.getValue(issue)) || forbiddenValues.get(issue).contains(bid.getValue(issue))){
-				return false;
+
+			boolean allAvailablesForbidden = true;
+			for(Value issueValue: this.availableValues.get(issue)){
+				if(!this.forbiddenValues.get(issue).contains(issueValue)){
+					allAvailablesForbidden = false;
+				}
 			}
-			else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
-				if((i+1) > changeRest){
+
+			List<Value> availableIssueValueList = availableValues.get(issue);
+			if(allAvailablesForbidden == false){
+				if(i < (sortedIssueArrList.size() + 1)/2){
+					if(!availableValues.get(issue).contains(bid.getValue(issue))){
+						return false;
+					}
+					else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+						changedIssueWorst++;
+					}
+				}
+				else{
+					if(!availableValues.get(issue).contains(bid.getValue(issue)) || forbiddenValues.get(issue).contains(bid.getValue(issue))){
+						return false;
+					}
+					else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+						changedIssueBest++;
+					}
+				}
+			}
+
+			else{
+				if(!availableValues.get(issue).contains(bid.getValue(issue))){
 					return false;
 				}
-				changedBid++;
+				else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+					if(i < (sortedIssueArrList.size() + 1)/2){
+						changedIssueWorst++;
+					}
+					else{
+						changedIssueBest ++;
+					}
+				}
 			}
-		}
 
-		if(changedBid >= changeRest){
+		}
+		int changeRestBest = changeRest / 2;
+		int changeRestWorst = (changeRest / 2) + (changeRest % 2);
+
+		if(changedIssueBest > changeRestBest || changedIssueWorst > changeRestWorst) {
 			return false;
 		}
+
 		return true;
 	}
+
 
 	public Bid foundCompatibleWithSimilarity(int numFirstBids, int numLastBids, double minUtility){
 		renewLists();
@@ -140,7 +178,7 @@ public class ImpMap {
 		}
 
 		// JUST TO TEST
-		numLastBids = 0;
+		numLastBids = 1;
 
 		for(int bidIndex = 0; bidIndex < numLastBids; bidIndex++){
 			Bid currentBid = sortedBids.get(bidIndex);
