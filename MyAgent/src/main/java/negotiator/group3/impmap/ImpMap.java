@@ -122,7 +122,7 @@ public class ImpMap {
 		List<Bid> sortedBids = estimatedProfile.getBids();
 
 		// JUST TO TEST
-		numFirstBids = sortedBids.size()-1;
+		/*numFirstBids = sortedBids.size()-1;*/
 
 		for(int bidIndex = (sortedBids.size()-1) - numFirstBids; bidIndex < sortedBids.size(); bidIndex++){
 			Bid currentBid = sortedBids.get(bidIndex);
@@ -175,7 +175,13 @@ public class ImpMap {
 		ArrayList<Integer> changeList = new ArrayList<>();
 
 		for(int i = 0; i < changeRest; i++){
-			changeList.add(random.nextInt(sortedIssueArrList.size()));
+			int randNum = random.nextInt((sortedIssueArrList.size() + 1)/2);
+			if(i % 2 == 0 ){
+				changeList.add(randNum);
+			}
+			else{
+				changeList.add(sortedIssueArrList.size() - 1 - randNum);
+			}
 		}
 
 		for (int i = 0; i < sortedIssueArrList.size(); i++) {
@@ -198,7 +204,10 @@ public class ImpMap {
 				if(allAvailablesForbidden == false){
 					while (true){
 						randNum = random.nextInt(availableIssueValueList.size());
-						if(!this.forbiddenValues.get(issue).contains(availableIssueValueList.get(randNum))){
+						if(i < (sortedIssueArrList.size() + 1)/2){
+							break;
+						}
+						else if(!this.forbiddenValues.get(issue).contains(availableIssueValueList.get(randNum))){
 							break;
 						}
 					}
