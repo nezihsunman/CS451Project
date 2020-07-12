@@ -208,7 +208,6 @@ public class Group3 extends DefaultParty {
 
 
         Bid ourOffer = null;
-        double bidImportanceLowerBound = 0.9;
         while (true) {
             for (int i = 0; i < allPossibleBidsSize.intValue(); i++) {
                 Bid testBid = randomBidGenerator();
@@ -218,7 +217,6 @@ public class Group3 extends DefaultParty {
                 }
             }
             if (ourOffer != null) break;
-            bidImportanceLowerBound -= 0.05;
         }
 
 
