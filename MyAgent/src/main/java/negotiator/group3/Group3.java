@@ -14,6 +14,7 @@ import geniusweb.progress.Progress;
 import geniusweb.progress.ProgressRounds;
 import negotiator.group3.impmap.ImpMap;
 import negotiator.group3.impmap.OppImpMap;
+import negotiator.group3.impmap.OppImpMapV2;
 import negotiator.group3.linearorder.OppSimpleLinearOrdering;
 import negotiator.group3.linearorder.SimpleLinearOrdering;
 import tudelft.utilities.logging.Reporter;
@@ -49,6 +50,8 @@ public class Group3 extends DefaultParty {
     private OppSimpleLinearOrdering opponentEstimatedProfile = null;
     private ImpMap impMap = null;
     private OppImpMap oppImpMap = null;
+
+    private OppImpMapV2 oppImpMapV2 = null;
 
     private double acceptanceLowerBound = 1;
     private BigInteger allBidSize = new BigInteger("0");
@@ -125,6 +128,9 @@ public class Group3 extends DefaultParty {
             this.impMap = new ImpMap(partialprofile);
             this.opponentEstimatedProfile = new OppSimpleLinearOrdering();
             this.oppImpMap = new OppImpMap(partialprofile);
+
+            this.oppImpMapV2 = new OppImpMapV2(partialprofile);
+
             this.ourEstimatedProfile = new SimpleLinearOrdering(profileint.getProfile());
             orderedbids = ourEstimatedProfile.getBids();
             elicitBid = impMap.leastKnownBidGenerator(allbids);
@@ -182,7 +188,10 @@ public class Group3 extends DefaultParty {
     }
 
     private Action makeAnOffer(double time) throws IOException {
+        Bid maxBid = ourEstimatedProfile.getBids().get(ourEstimatedProfile.getBids().size() - 1);
+
         ourOffer = null;
+
         BigDecimal bidImportanceLowerBound = BigDecimal.valueOf(0.8);
         BigDecimal bidImportanceHigherBound = BigDecimal.valueOf(1);
         BigDecimal time1 = BigDecimal.valueOf(time);
@@ -228,9 +237,9 @@ public class Group3 extends DefaultParty {
                 Bid testBid = randomBidGenerator();
                 double impMapImportanceForMe = impMap.getImportance(testBid);
                 double similarityRatio = checkSimilarity(testBid);
-                if (impMapImportanceForMe >= bidImportanceLowerBound.doubleValue() && impMapImportanceForMe <= bidImportanceHigherBound.doubleValue() && (similarityRatio >= 0.46 || impMapImportanceForMe >= 0.94)) {
+                if ((time >= 0.9 || !maxBid.equals(testBid)) && impMapImportanceForMe >= bidImportanceLowerBound.doubleValue() && impMapImportanceForMe <= bidImportanceHigherBound.doubleValue() && (similarityRatio >= 0.48 || impMapImportanceForMe >= 0.94)) {
                     ourOffer = testBid;
-                    if (impMapImportanceForMe > oppImpMap.getImportance(testBid) + 0.15) {
+                    if (oppImpMap.getImportance(testBid) < 0.55) {
                         break;
                     }
                 }
@@ -243,7 +252,7 @@ public class Group3 extends DefaultParty {
         }
         offerRed.put(ourOffer, "offered");
         getReporter().log(Level.INFO, "Time: " + time);
-        getReporter().log(Level.INFO, "---" + me + " Similarity Case New Offer" + oppImpMap.getImportance(ourOffer) + "ImpMap: " + impMap.getImportance(ourOffer));
+        getReporter().log(Level.INFO, "---" + me + " Similarity Case New Offer and OppImpMapV1: " + oppImpMap.getImportance(ourOffer) + "OppImpMapV2: " + oppImpMapV2.getImportance(ourOffer) + "ImpMap: " + impMap.getImportance(ourOffer));
         getReporter().log(Level.INFO, "Offered Bid Size" + offerRed.size());
         return new Offer(me, ourOffer);
     }
@@ -274,21 +283,50 @@ public class Group3 extends DefaultParty {
         return totalAverage;
     }
 
+    private int checkSimilarityForAcceptanceAccordingToMaxBid(Bid maxBid) {
+
+        Set<Map.Entry<String, Double>> sortedIssueMapSet = impMap.getSortedIssueImpMap().entrySet();
+        ArrayList<Map.Entry<String, Double>> sortedIssueArrList = new ArrayList<Map.Entry<String, Double>>(sortedIssueMapSet);
+
+        String bestImportantIssue = sortedIssueArrList.get(sortedIssueArrList.size() - 1).getKey();
+        String worstIssue = sortedIssueArrList.get(0).getKey();
+        String secondWorstIssue = sortedIssueArrList.get(1).getKey();
+        int numberOfIssue = 0;
+        int similarity = 0;
+        for (String issue : lastReceivedBid.getIssues()) {
+            numberOfIssue++;
+            if (lastReceivedBid.getValue(issue).equals(maxBid.getValue(issue))) {
+                similarity++;
+            }
+        }
+        if (numberOfIssue > 4 && (numberOfIssue - similarity) == 2) {
+            if (!lastReceivedBid.getValue(worstIssue).equals(maxBid.getValue(worstIssue)) &&
+                    !lastReceivedBid.getValue(secondWorstIssue).equals(maxBid.getValue(secondWorstIssue))) {
+                return 1;
+            }
+        }
+        if (!lastReceivedBid.getValue(bestImportantIssue).equals(maxBid.getValue(bestImportantIssue))) {
+            similarity = 0;
+        }
+
+        return (numberOfIssue - similarity);
+    }
 
     private Action doWeAccept() {
-        if (oppImpMap.getImportance(lastReceivedBid) < (impMap.getImportance(lastReceivedBid) - 0.02) && impMap.getImportance(lastReceivedBid) > 0.80) {
-            getReporter().log(Level.INFO, "---" + me + " It is acceptable: " + oppImpMap.getImportance(lastReceivedBid) + " - " + impMap.getImportance(lastReceivedBid));
-        }
+        Bid maxBid = ourEstimatedProfile.getBids().get(ourEstimatedProfile.getBids().size() - 1);
 
-        if (lastReceivedBid.equals(ourEstimatedProfile.getBids().get(ourEstimatedProfile.getBids().size() - 1))) {
+        if (lastReceivedBid.equals(maxBid)) {
             getReporter().log(Level.INFO, "---" + me + " I accept first bid offer");
             return new Accept(me, lastReceivedBid);
-        } else if (lastReceivedBid.equals(ourEstimatedProfile.getBids().get(ourEstimatedProfile.getBids().size() - 2))) {
+        } else if (ourEstimatedProfile.getBids().size() > 6 && lastReceivedBid.equals(ourEstimatedProfile.getBids().get(ourEstimatedProfile.getBids().size() - 2))) {
             getReporter().log(Level.INFO, "---" + me + " I accept second bid offer");
             return new Accept(me, lastReceivedBid);
+        } else if (oppImpMap.getImportance(lastReceivedBid) < 0.70 && checkSimilarityForAcceptanceAccordingToMaxBid(maxBid) == 1) {
+            getReporter().log(Level.INFO, "---" + me + " I accept first bid offer due to checkSimilarityForAcceptanceAccordingToMaxBid similarity" + oppImpMap.getImportance(lastReceivedBid));
+            return new Accept(me, lastReceivedBid);
         }
-        if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound && checkSimilarity(lastReceivedBid) >= 0.43
-                && oppImpMap.getImportance(lastReceivedBid) < (impMap.getImportance(lastReceivedBid) - 0.02)) {
+        if (this.impMap.getImportance(lastReceivedBid) > acceptanceLowerBound && checkSimilarity(lastReceivedBid) >= 0.50
+                && oppImpMap.getImportance(lastReceivedBid) < (impMap.getImportance(lastReceivedBid) - 0.15)) {
             getReporter().log(Level.INFO, "---" + me + " I accept the offer" + "similarity: " + checkSimilarity(lastReceivedBid));
             return new Accept(me, lastReceivedBid);
         }
@@ -298,16 +336,18 @@ public class Group3 extends DefaultParty {
 
     private void strategySelection() throws IOException {
 
-        this.acceptanceLowerBound = (1 - (pow(min(0.1, 2 * (0.5 - this.time)), 2) / 5)) + lostElicitScore.doubleValue();
+        this.acceptanceLowerBound = (-0.1541 * time * time) - (0.091 * time) + 0.9995 + lostElicitScore.doubleValue();
         this.opponentEstimatedProfile.updateBid(counterOffer);
         this.oppImpMap.update(opponentEstimatedProfile);
+
+        this.oppImpMapV2.update(opponentEstimatedProfile);
 
         if (elicitBid == null) {
             this.impMap.update(ourEstimatedProfile);
             getReservationRatio();
             elicitBid = this.impMap.leastKnownBidGenerator(allbids);
         }
-        getReporter().log(Level.INFO, "----> Bid importance for opponent :" + oppImpMap.getImportance(counterOffer));
+        getReporter().log(Level.INFO, "----> Bid importance for opponent V1 :" + oppImpMap.getImportance(counterOffer) + "Bid imp for V2: " + oppImpMapV2.getImportance(counterOffer));
         getReporter().log(Level.INFO, "----> Bid importance for me :" + impMap.getImportance(counterOffer));
     }
 

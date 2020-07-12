@@ -17,6 +17,12 @@ public class ImpMap {
 	HashMap<String, List<ImpUnit>> issueValueImpMap;
 	HashMap<String,Double> issueImpMap;
 
+	public LinkedHashMap<String, Double> getSortedIssueImpMap() {
+		return sortedIssueImpMap;
+	}
+
+	private LinkedHashMap<String, Double> sortedIssueImpMap;
+
 	// Importance map
 	public ImpMap(Profile profile) {
 		this.domain = profile.getDomain();
@@ -67,8 +73,60 @@ public class ImpMap {
 				currentUnit.importanceWeight /= maxIssueValue;
 			}
 		}
-	}
 
+		for(int bidIndex = 0; bidIndex < sortedBids.size(); bidIndex++){
+			Bid currentBid = sortedBids.get(bidIndex);
+			double bidImportance = estimatedProfile.getUtility(currentBid).doubleValue();
+			for (String issue : currentBid.getIssues()) {
+				List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
+				for (ImpUnit currentUnit : currentIssueList) {
+					if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
+						currentUnit.importanceList.add(bidImportance);
+						break;
+					}
+				}
+			}
+		}
+
+		for (String issue : issueImpMap.keySet()) {
+			List<Double> issueValAvgList = new ArrayList<>();
+			List<ImpUnit> currentIssueList = issueValueImpMap.get(issue);
+			for (ImpUnit currentUnit : currentIssueList) {
+				if(currentUnit.importanceList.size() != 0){
+					double issueValueAvg = 0.0;
+					for (double IssueUnitImp : currentUnit.importanceList) {
+						issueValueAvg += IssueUnitImp;
+					}
+					issueValueAvg /= currentUnit.importanceList.size();
+					issueValAvgList.add(issueValueAvg);
+				}
+			}
+
+
+			/*reporter.log( Level.INFO, issue + " VAL AVG List "+ issueValAvgList );
+			reporter.log( Level.INFO, issue + " STDEV "+ stdev(issueValAvgList));*/
+
+			issueImpMap.put(issue, stdev(issueValAvgList));
+		}
+
+		sortedIssueImpMap = sortByValue(issueImpMap);
+	}
+	private double stdev (List<Double> arr)
+	{
+		double sum = 0.0;
+		for(int i = 0; i< arr.size(); i++){
+			sum += arr.get(i);
+		}
+		double mean = sum / arr.size();
+		sum = 0;
+		for (int i = 0; i < arr.size(); i++)
+		{
+			double val = arr.get(i);
+			sum += Math.pow(val - mean, 2);
+		}
+		double meanOfDiffs = sum / (double) (arr.size());
+		return Math.sqrt(meanOfDiffs);
+	}
 	private void renewMaps(){
 		issueValueImpMap = new HashMap<>();
 		issueImpMap = new HashMap<>();
@@ -132,6 +190,23 @@ public class ImpMap {
 			}
 		}
 		return null;
+	}
+	private LinkedHashMap<String, Double> sortByValue(HashMap<String, Double> hm)
+	{
+		List<Map.Entry<String, Double> > list =
+				new LinkedList<Map.Entry<String, Double> >(hm.entrySet());
+		Collections.sort(list, new Comparator<Map.Entry<String, Double> >() {
+			public int compare(Map.Entry<String, Double> o1,
+							   Map.Entry<String, Double> o2)
+			{
+				return (o1.getValue()).compareTo(o2.getValue());
+			}
+		});
+		LinkedHashMap<String, Double> temp = new LinkedHashMap<String, Double>();
+		for (Map.Entry<String, Double> aa : list) {
+			temp.put(aa.getKey(), aa.getValue());
+		}
+		return temp;
 	}
 
 
