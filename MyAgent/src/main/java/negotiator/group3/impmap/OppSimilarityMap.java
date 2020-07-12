@@ -12,12 +12,11 @@ import tudelft.utilities.logging.Reporter;
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
-public class OppImpMap {
+public class OppSimilarityMap {
 
     private Domain domain;
-    private HashMap<String, List<OppImpUnit>> issueValueImpMap;
+    private HashMap<String, List<OppIssueValueUnit>> issueValueImpMap;
     private HashMap<String,Double> issueImpMap;
     private OppSimpleLinearOrdering estimatedProfile;
     private Bid maxImpBid;
@@ -30,7 +29,7 @@ public class OppImpMap {
 
 
     // Importance map
-    public OppImpMap(Profile profile, Reporter reporter) {
+    public OppSimilarityMap(Profile profile, Reporter reporter) {
         this.domain = profile.getDomain();
         for (String issue : domain.getIssues()) {
             issueList.add(issue);
@@ -60,8 +59,8 @@ public class OppImpMap {
         for(int bidIndex = firstStartIndex; bidIndex < sortedBids.size(); bidIndex++){
             Bid currentBid = sortedBids.get(bidIndex);
             for (String issue : currentBid.getIssues()) {
-                List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
-                for (OppImpUnit currentUnit : currentIssueList) {
+                List<OppIssueValueUnit> currentIssueList = issueValueImpMap.get(issue);
+                for (OppIssueValueUnit currentUnit : currentIssueList) {
                     if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
                         if(!availableValues.get(issue).contains(currentBid.getValue(issue))){
                             availableValues.get(issue).add(currentBid.getValue(issue));
@@ -150,8 +149,8 @@ public class OppImpMap {
             Bid currentBid = sortedBids.get(bidIndex);
             double bidImportance = estimatedProfile.getUtility(currentBid).doubleValue();
             for (String issue : currentBid.getIssues()) {
-                List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
-                for (OppImpUnit currentUnit : currentIssueList) {
+                List<OppIssueValueUnit> currentIssueList = issueValueImpMap.get(issue);
+                for (OppIssueValueUnit currentUnit : currentIssueList) {
                     if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
                         currentUnit.importanceList.add(bidImportance);
                         break;
@@ -186,9 +185,9 @@ public class OppImpMap {
 
         for (String issue : issueImpMap.keySet()) {
             List<Double> issueValAvgList = new ArrayList<>();
-            List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
+            List<OppIssueValueUnit> currentIssueList = issueValueImpMap.get(issue);
             double issueImp = 0.0;
-            for (OppImpUnit currentUnit : currentIssueList) {
+            for (OppIssueValueUnit currentUnit : currentIssueList) {
                 if(currentUnit.importanceList.size() != 0){
                     for (int i = 0; i < currentUnit.importanceList.size(); i++) {
                         double issueUnitImp = currentUnit.importanceList.get(i);
@@ -215,11 +214,11 @@ public class OppImpMap {
         for (String issue : domain.getIssues()) {
             issueImpMap.put(issue, 0.0);
             ValueSet values = domain.getValues(issue);
-            List<OppImpUnit> issueOppImpUnit = new ArrayList<>();
+            List<OppIssueValueUnit> issueOppIssueValueUnit = new ArrayList<>();
             for (Value value : values) {
-                issueOppImpUnit.add(new OppImpUnit(value));
+                issueOppIssueValueUnit.add(new OppIssueValueUnit(value));
             }
-            issueValueImpMap.put(issue, issueOppImpUnit);
+            issueValueImpMap.put(issue, issueOppIssueValueUnit);
         }
     }
 
@@ -235,10 +234,10 @@ public class OppImpMap {
 
         HashMap<String, Value> leastKnownBidValues= new HashMap<>();
         for (String issue : issueImpMap.keySet()) {
-            List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
+            List<OppIssueValueUnit> currentIssueList = issueValueImpMap.get(issue);
             Value leastKnownIssueValue = null;
             int minCount = Integer.MAX_VALUE;
-            for (OppImpUnit currentUnit : currentIssueList) {
+            for (OppIssueValueUnit currentUnit : currentIssueList) {
                 if (currentUnit.importanceList.size() < minCount) {
                     minCount = currentUnit.importanceList.size();
                     leastKnownIssueValue = currentUnit.valueOfIssue;

@@ -6,14 +6,15 @@ import geniusweb.issuevalue.Bid;
 import geniusweb.party.Capabilities;
 import geniusweb.party.DefaultParty;
 import geniusweb.party.inform.*;
+import geniusweb.profile.FullOrdering;
 import geniusweb.profile.PartialOrdering;
 import geniusweb.profile.utilityspace.LinearAdditive;
 import geniusweb.profileconnection.ProfileConnectionFactory;
 import geniusweb.profileconnection.ProfileInterface;
 import geniusweb.progress.Progress;
 import geniusweb.progress.ProgressRounds;
-import negotiator.group3.impmap.ImpMap;
-import negotiator.group3.impmap.OppImpMap;
+import negotiator.group3.impmap.SimilarityMap;
+import negotiator.group3.impmap.OppSimilarityMap;
 import negotiator.group3.linearorder.OppSimpleLinearOrdering;
 import negotiator.group3.linearorder.SimpleLinearOrdering;
 import tudelft.utilities.logging.Reporter;
@@ -29,47 +30,39 @@ import static java.lang.Math.*;
 
 public class Group3 extends DefaultParty {
 
-    private int numFirstBids;
-    private int numLastBids;
-
-    private int oppFirstBids;
-
     private final Random random = new Random();
 
-    private Bid lastReceivedBid = null;
-    private Bid prevReceivedBid = null;
-    private Bid counterOffer = null;
-    private Bid ourOffer = null;
+    private int numFirstBids;
+    private int numLastBids;
+    private int oppNumFirstBids;
 
-    protected ProfileInterface profileint;
-    private PartyId me;
+    protected ProfileInterface profileInterface;
+    private PartyId partyId;
     private Progress progress;
     double time = 0.0;
 
+    private AllBidsList allPossibleBids;
+    private BigInteger allPossibleBidsSize;
+    private SimpleLinearOrdering ourLinearPartialOrdering = null;
+    private OppSimpleLinearOrdering oppLinearPartialOrdering = null;
+    private SimilarityMap ourSimilarityMap = null;
+    private OppSimilarityMap oppSimilarityMap = null;
 
-    private AllBidsList allbids; // all bids possible in domain.
-    private List<Bid> orderedbids;
-    private Bid elicitBid = null;
-    private SimpleLinearOrdering ourEstimatedProfile = null;
-    private OppSimpleLinearOrdering opponentEstimatedProfile = null;
-    private ImpMap impMap = null;
-    private OppImpMap oppImpMap = null;
+    private Bid lastReceivedBid = null;
+    private double utilityLowerBound = 0.9; // TODO Check Acceptance Lower Bound Graph
 
-    private double utilityLowerBound = 1;
-    private BigInteger allBidSize = new BigInteger("0");
-    // Initially equals to 0
+    // Initially no loss
     private BigDecimal lostElicitScore = new BigDecimal("0.00");
 
     // If no reservation ratio is assigned by the system then it is equal to 0 by default
-    private double reservationImportanceRatio = 0.0;
+    private double reservationUtility = 0.0;
+    private Bid reservationBid = null;
 
-    //Set default as 0.1
-    private BigDecimal elicitationCost = new BigDecimal("0.1");
-    private boolean doWeElicitate = false;
+    //Set default as 0.01 by Genius Framework
+    private BigDecimal elicitationCost = new BigDecimal("0.01");
 
     /*DEBUG*/
-    private HashMap<Bid, String> offeredOffers = new HashMap<>();
-
+    private HashMap<Bid, String> offeredOffers = new HashMap<>(); //TODO REMOVE AFTER TESTS
 
     public Group3() {
     }
@@ -85,8 +78,8 @@ public class Group3 extends DefaultParty {
 
     @Override
     public String getDescription() {
-        return "AhNeCe Agent";
-    }
+        return "AhBuNe Agent";
+    } //TODO Change in POM
 
     @Override
     public void notifyChange(Inform info) {
@@ -94,214 +87,235 @@ public class Group3 extends DefaultParty {
             if (info instanceof Settings) {
                 Settings settings = (Settings) info;
                 init(settings);
-                /*getReporter().log(Level.INFO, "---" + me + " Setting initialization is done");*/
+                getReporter().log(Level.INFO, "<AhBuNe>: " + "init");
             } else if (info instanceof ActionDone) {
                 Action lastReceivedAction = ((ActionDone) info).getAction();
                 if (lastReceivedAction instanceof Offer) {
-                    getReporter().log(Level.INFO, "---" + "SIMILARITY" + "   Offer came:" + ((Offer) lastReceivedAction).getBid());
+                    getReporter().log(Level.INFO, "<AhBuNe>: " + " Offer Came:" + ((Offer) lastReceivedAction).getBid()); //TODO REMOVE
                     lastReceivedBid = ((Offer) lastReceivedAction).getBid();
                 } else if (lastReceivedAction instanceof Comparison) {
-                    ourEstimatedProfile = ourEstimatedProfile.with(((Comparison) lastReceivedAction).getBid(), ((Comparison) lastReceivedAction).getWorse());
-                    /*getReporter().log(Level.INFO, "---" + me + " Comparison done for bid: " + ((Comparison) lastReceivedAction).getBid());*/
+                    ourLinearPartialOrdering = ourLinearPartialOrdering.with(((Comparison) lastReceivedAction).getBid(), ((Comparison) lastReceivedAction).getWorse());
                     myTurn();
+                    getReporter().log(Level.INFO, "<AhBuNe>: " + "lastReceivedAction");
                 }
             } else if (info instanceof YourTurn) {
-                /*getReporter().log(Level.INFO, "---" + me + "  Your Turn info has received with bid: " + lastReceivedBid);*/
                 if (progress instanceof ProgressRounds) {
                     progress = ((ProgressRounds) progress).advance();
                 }
+                getReporter().log(Level.INFO, "<AhBuNe>: " + progress);
                 myTurn();
-
             } else if (info instanceof Finished) {
-                getReporter().log(Level.INFO, "offeredOffers: " + offeredOffers);
-                /*getReporter().log(Level.INFO, "Final outcome:" + info);*/
+                getReporter().log(Level.INFO, "<AhBuNe>: " + " Offered Offers: " + offeredOffers); //TODO REMOVE
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to handle info", e);
+        } catch (Exception exception) {
+            throw new RuntimeException("Failed to handle info", exception);
         }
     }
 
     private void init(Settings settings) throws IOException, DeploymentException {
-        this.me = settings.getID();
+        this.partyId = settings.getID();
         this.progress = settings.getProgress();
-        this.profileint = ProfileConnectionFactory.create(settings.getProfile().getURI(), getReporter());
+        this.profileInterface = ProfileConnectionFactory.create(settings.getProfile().getURI(), getReporter());
 
-        if (profileint.getProfile() instanceof LinearAdditive) {
-            throw new UnsupportedOperationException(
-                    "Only DefaultPartialOrdering supported");
-        } else if (profileint.getProfile() instanceof PartialOrdering) {
-
-            /*getReporter().log(Level.INFO, "---" + me + " Partial profile has received");*/
-
-            PartialOrdering partialprofile = (PartialOrdering) profileint.getProfile();
-
-            this.allbids = new AllBidsList(partialprofile.getDomain());
-            this.allBidSize = allbids.size();
-            this.impMap = new ImpMap(partialprofile,getReporter());
-            this.opponentEstimatedProfile = new OppSimpleLinearOrdering();
-            this.oppImpMap = new OppImpMap(partialprofile, getReporter());
-            this.ourEstimatedProfile = new SimpleLinearOrdering(profileint.getProfile());
-            orderedbids = ourEstimatedProfile.getBids();
-            elicitBid = impMap.leastKnownBidGenerator(allbids);
+        if (profileInterface.getProfile() instanceof FullOrdering) {
+            throw new UnsupportedOperationException("Only <DefaultPartialOrdering> is supported");
+        } else if (profileInterface.getProfile() instanceof PartialOrdering) {
+            PartialOrdering partialProfile = (PartialOrdering) profileInterface.getProfile();
+            this.allPossibleBids = new AllBidsList(partialProfile.getDomain());
+            this.allPossibleBidsSize = allPossibleBids.size();
+            this.ourSimilarityMap = new SimilarityMap(partialProfile, getReporter()); //TODO REMOVE REPORTER
+            this.oppSimilarityMap = new OppSimilarityMap(partialProfile, getReporter()); //TODO REMOVE REPORTER
+            this.ourLinearPartialOrdering = new SimpleLinearOrdering(profileInterface.getProfile());
+            this.oppLinearPartialOrdering = new OppSimpleLinearOrdering();
+            this.ourSimilarityMap.update(ourLinearPartialOrdering);
             getReservationRatio();
-            this.impMap.update(ourEstimatedProfile);
+
+            getReporter().log(Level.INFO, "<AhBuNe>: Init finished");
 
         } else {
-            throw new UnsupportedOperationException("Only DefaultPartialOrdering supported");
+            throw new UnsupportedOperationException("Only <DefaultPartialOrdering> is supported");
         }
+
+    }
+
+    private Action actionOperation() throws IOException {
+        if (this.lastReceivedBid == null) {
+            getReporter().log(Level.INFO, "<AhBuNe>: Selecting first offer");
+            return makeAnOffer();
+        }
+        getReporter().log(Level.INFO, "<AhBuNe>: Entering Strategy selection");
+        strategySelection();
+        getReporter().log(Level.INFO, "<AhBuNe>: Strategy selected");
+        //TODO: ELICITATION
+        if (doWeElicitateCheck()) {
+            lostElicitScore.add(elicitationCost);
+            return new ElicitComparison(partyId, lastReceivedBid, ourLinearPartialOrdering.getBids());
+        }
+        //if not Accepted return null
+        if (doWeEndTheNegotiation()) {
+            return new EndNegotiation(partyId);
+        } else if (doWeAccept() != null) {
+            return doWeAccept();
+        }
+        return makeAnOffer();
 
     }
 
     private void myTurn() throws IOException {
-        /*getReporter().log(Level.INFO, "---" + me + " entered into myTurn");*/
         time = progress.get(System.currentTimeMillis());
-        prevReceivedBid = counterOffer;
-        counterOffer = lastReceivedBid;
-        Action action = null;
-        /*getReporter().log(Level.INFO, "---" + me + " Elicitation check ended");*/
-        if (elicitBid != null && counterOffer != null && prevReceivedBid != null && doWeElicitateCheck()) {
-            doWeElicitate = true;
-            lostElicitScore.add(elicitationCost);
-        }
-        if (elicitBid != null && counterOffer != null && this.doWeElicitate) {
-
-            action = new ElicitComparison(me, counterOffer, ourEstimatedProfile.getBids());
-            elicitBid = null;
-            this.doWeElicitate = false;
-            /*getReporter().log(Level.INFO, "---" + me + " Elicit bit is sent to elicitation");*/
-        } else {
-            if (counterOffer != null) {
-                strategySelection();
-                /*getReporter().log(Level.INFO, "---" + me + "  Strategy selection is finished");*/
-
-                /*getReporter().log(Level.INFO, "---" + me + " doWeEndTheNegotiation?");*/
-                //if not Accepted return null
-                action = doWeEndTheNegotiation();
-
-                if (action == null) {
-                    /*getReporter().log(Level.INFO, "---" + me + " doWeAcceptTheOfferedBid?");*/
-                    //if not Accepted return null
-                    action = doWeAccept();
-                }
-            }
-        }
-        if (action == null) {
-            /*getReporter().log(Level.INFO, "---" + me + " Selecting an offer");*/
-            action = makeAnOffer();
-            /*getReporter().log(Level.INFO, "---" + me + " offer is selected");*/
-        }
+        Action action = this.actionOperation();
+        getReporter().log(Level.INFO, "<AhBuNe>: Action: " + action);
         getConnection().send(action);
-        /*getReporter().log(Level.INFO, "---" + me + " action is sent as: " + action);*/
     }
 
-    private Action doWeEndTheNegotiation() {
-        if (reservationImportanceRatio > 0.85) {
-           /* getReporter().log(Level.INFO, "---" + me + " Negotiation is ended with the method doWeNeedNegotiation");*/
-            return new EndNegotiation(me);
+    private boolean doWeEndTheNegotiation() {
+        if (reservationUtility > 0.85) {
+            /* getReporter().log(Level.INFO, "---" + me + " Negotiation is ended with the method doWeNeedNegotiation");*/
+            return true;
         }
-        return null;
+        return false;
     }
+
 
     private Bid randomBidGenerator() {
-        Random rand = new Random();
-        return allbids.get(rand.nextInt(allbids.size().intValue()));
+        return allPossibleBids.get(random.nextInt(allPossibleBids.size().intValue()));
     }
 
     private Action makeAnOffer() throws IOException {
-
-        ourOffer = null;
-        double bidImportanceLowerBound = 0.9;
+        /*Bid ourOffer = null;
+        double bidImportanceLowerBound = utilityLowerBound;
         while (true) {
-            for (int i = 0; i < allBidSize.intValue(); i++) {
+            for (int i = 0; i < allPossibleBidsSize.intValue(); i++) {
                 Bid testBid = randomBidGenerator();
-                if (impMap.isCompatibleWithSimilarity(testBid, numFirstBids, numLastBids, utilityLowerBound,"OFFER") /*&& !oppImpMap.isCompromised(testBid, oppFirstBids, utilityLowerBound)*/) {
+                if (ourSimilarityMap.isCompatibleWithSimilarity(testBid, numFirstBids, numLastBids, bidImportanceLowerBound, "OFFER")) { //TODO RM OFFER
                     ourOffer = testBid;
                     break;
-                    /*if (impMap.getImportance(testBid) > oppImpMap.getImportance(testBid) && oppImpMap.getImportance(testBid) > 0.5) {
-                        break;
-                    }*/
+                    if(lastReceivedBid == null) break;
+                    if (estimatedUtilityValue(testBid, true) < estimatedUtilityValue(testBid, false)) {
+                        if (time > 0.8) {
+                            if (this.utilityLowerBound - 0.2 < estimatedUtilityValue(testBid, true)) {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+            if (ourOffer != null) break;
+            bidImportanceLowerBound -= 0.04;
+        }*/
+
+
+        Bid ourOffer = null;
+        double bidImportanceLowerBound = 0.9;
+        while (true) {
+            for (int i = 0; i < allPossibleBidsSize.intValue(); i++) {
+                Bid testBid = randomBidGenerator();
+                if (ourSimilarityMap.isCompatibleWithSimilarity(testBid, numFirstBids, numLastBids, utilityLowerBound,"OFFER") ) {
+                    ourOffer = testBid;
+                    break;
                 }
             }
             if (ourOffer != null) break;
             bidImportanceLowerBound -= 0.05;
         }
-        /*DEBUG*/
-        offeredOffers.put(ourOffer, "Fantasy");
-        return new Offer(me, ourOffer);
 
+
+        offeredOffers.put(ourOffer, "Fantasy"); // TODO RM
+        return new Offer(partyId, ourOffer);
     }
 
-    private Action doWeAccept() {
 
+
+    private Action doWeAccept() {
+       /* double oppUtilityValue = estimatedUtilityValue(lastReceivedBid, true);
+        double ourUtilityValue = estimatedUtilityValue(lastReceivedBid, false);
+        if (ourUtilityValue > utilityLowerBound && oppUtilityValue < ourUtilityValue) {
+            return new Accept(partyId, lastReceivedBid);
+        }*/
         for(double utilityTest = utilityLowerBound; utilityTest <= 0.95; utilityTest += 0.05){
-            if(oppImpMap.isCompromised(lastReceivedBid, oppFirstBids, utilityTest)){
+            if(oppSimilarityMap.isCompromised(lastReceivedBid, this.oppNumFirstBids, utilityTest)){
                 getReporter().log(Level.INFO, "TIME: " + this.time);
                 getReporter().log(Level.INFO, "HEYO offer has OPP utility: " + utilityTest);
-                if (this.impMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, utilityTest, "ACCEPT")){
+                if (this.ourSimilarityMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, utilityTest, "ACCEPT")){
                     getReporter().log(Level.INFO, "HEYO I accept the offer for, MY utility: " + utilityTest);
-                    return new Accept(me, lastReceivedBid);
+                    return new Accept(partyId, lastReceivedBid);
                 }
                 break;
             }
         }
-
         return null;
     }
 
-
-    private void strategySelection() throws IOException {
-
-        // 6.6 means lower bound is set to 0.8 in time 1
-        this.utilityLowerBound = -pow(this.time/2, 2) + 0.95 + lostElicitScore.doubleValue();
-
-        int knownBidNum = this.ourEstimatedProfile.getBids().size();
-        int knownBidNumOpp = this.opponentEstimatedProfile.getBids().size();
-        this.numFirstBids = (int) (knownBidNum * (1 - this.utilityLowerBound)) + 1;
-        this.numLastBids = (int) (knownBidNum * 0.30) - (int)(knownBidNum * (1 - this.utilityLowerBound)) + 1;
-        this.oppFirstBids = (int) (knownBidNumOpp * (1 - this.utilityLowerBound)) + 1;
-
-        /*getReporter().log(Level.INFO, "----> Time :" + time + "  Similarity Lower Bound:" + this.utilityLowerBound);*/
-        this.opponentEstimatedProfile.updateBid(counterOffer);
-        this.oppImpMap.update(opponentEstimatedProfile);
-
-        if (elicitBid == null) {
-            this.impMap.update(ourEstimatedProfile);
-            getReservationRatio();
-            elicitBid = this.impMap.leastKnownBidGenerator(allbids);
-        }
-
-        /*getReporter().log(Level.INFO, "----> Time :" + time + "  Acceptance Lower Bound:" + utilityLowerBound);*/
-        /*getReporter().log(Level.INFO, "----> Bid importance for opponent :" + oppImpMap.getImportance(counterOffer));*/
+    private boolean doWeElicitateCheck() {
+        return false;
     }
 
-    private boolean doWeElicitateCheck() throws IOException {
 
-        if (!prevReceivedBid.equals(counterOffer)) return false;
-        if (lostElicitScore.doubleValue() + elicitationCost.doubleValue() > 0.075) return false;
-        int issueCount = 0;
-        int similarIssueCount = 0;
-        for (String issue : this.profileint.getProfile().getDomain().getIssues()) {
-            issueCount++;
-            if (counterOffer.getValue(issue).equals(elicitBid.getValue(issue))) {
-                similarIssueCount++;
+    private void strategySelection() {
+        this.utilityLowerBound = getUtilityLowerBound(this.time, lostElicitScore.doubleValue());
+        int knownBidNum = this.ourLinearPartialOrdering.getBids().size();
+        int oppKnownBidNum = this.oppLinearPartialOrdering.getBids().size();
+        this.numFirstBids = getNumFirst(this.utilityLowerBound, knownBidNum);
+        this.numLastBids = getNumLast(this.utilityLowerBound, getUtilityLowerBound(1.0, lostElicitScore.doubleValue()), knownBidNum);
+        this.oppNumFirstBids = getOppNumFirst(this.utilityLowerBound, oppKnownBidNum);
+
+        this.oppLinearPartialOrdering.updateBid(lastReceivedBid);
+        this.oppSimilarityMap.update(oppLinearPartialOrdering);
+    }
+
+    public double estimatedUtilityValue(Bid bid, boolean isOpponent) {
+        int knownBidNum = this.ourLinearPartialOrdering.getBids().size();
+        int oppKnownBidNum = this.oppLinearPartialOrdering.getBids().size();
+        // TODO 2 Check
+        double estimatedUtilityValue = 0.0;
+        for (int i = 0; i <= 100; i += 2) {
+            double utilityTest = (double) i / 100;
+            int numFirstBids = getNumFirst(utilityTest, knownBidNum);
+            int numLastBids = getNumLast(utilityTest, getUtilityLowerBound(1.0, this.lostElicitScore.doubleValue()), knownBidNum);
+            int oppNumFirstBids = getOppNumFirst(utilityTest, oppKnownBidNum);
+            if (isOpponent) {
+                if (!this.oppSimilarityMap.isCompromised(bid, oppNumFirstBids, utilityTest)) {
+                    estimatedUtilityValue = utilityTest;
+                }
+            } else {
+                if (this.ourSimilarityMap.isCompatibleWithSimilarity(bid, numFirstBids, numLastBids, utilityTest, "ACCEPT")) {//TODO RM callType
+                    estimatedUtilityValue = utilityTest;
+                }
             }
         }
-        double similarityRatio = (double) similarIssueCount / issueCount;
-        if (similarityRatio > 0.6) return true;
 
-        return false;
+        if(isOpponent) getReporter().log(Level.INFO, "<AhBuNe>: OPP ESTIMATE: " + estimatedUtilityValue);
+        else getReporter().log(Level.INFO, "<AhBuNe>: OUR ESTIMATE: " + estimatedUtilityValue);
+
+
+
+        return estimatedUtilityValue;
     }
 
     private void getReservationRatio() throws IOException {
         try {
-            Bid resBid = this.profileint.getProfile().getReservationBid();
-            if (resBid != null) {
-                /*this.reservationImportanceRatio = this.impMap.getSimilarity(resBid);*/
-                this.reservationImportanceRatio = 0;
-            } else
-                this.reservationImportanceRatio = 0;
+            this.reservationBid = this.profileInterface.getProfile().getReservationBid();
+            this.reservationUtility = estimatedUtilityValue(reservationBid, false);
         } catch (Exception e) {
-            this.reservationImportanceRatio = 0;
+            this.reservationUtility = 0;
         }
+    }
+
+    double getUtilityLowerBound(double time, double lostElicitScore) {
+        return ((-pow(time / 2, 2) + 0.95) + lostElicitScore);
+    }
+
+    int getNumFirst(double utilityLowerBound, int knownBidNum) {
+        return ((int) (knownBidNum * (1 - utilityLowerBound)) + 1);
+    }
+
+    int getNumLast(double utilityLowerBound, double minUtilityLowerBound, int knownBidNum) {
+        return ((int) (knownBidNum * minUtilityLowerBound) - (int) (knownBidNum * (1 - utilityLowerBound)) + 1);
+    }
+
+    int getOppNumFirst(double utilityLowerBound, int oppKnownBidNum) {
+        return ((int) (oppKnownBidNum * (1 - utilityLowerBound)) + 1);
     }
 }

@@ -5,12 +5,12 @@ import geniusweb.issuevalue.Value;
 import java.util.ArrayList;
 import java.util.List;
 
-public class OppImpUnit {
+public class OppIssueValueUnit {
 	public Value valueOfIssue;
 	public List<Double> importanceList = new ArrayList<>();
 
 
-	public OppImpUnit(Value value) {
+	public OppIssueValueUnit(Value value) {
 		this.valueOfIssue = value;
 	}
 
