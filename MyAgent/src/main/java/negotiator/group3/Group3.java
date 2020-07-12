@@ -232,15 +232,19 @@ public class Group3 extends DefaultParty {
     }
 
     private Action doWeAccept() {
-        if (this.impMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, 0.85, "ACCEPT") && oppImpMap.isCompromised(lastReceivedBid, oppFirstBids, 0.85)){
-           /* getReporter().log(Level.INFO, "---" + me + " I accept the offer");*/
-            return new Accept(me, lastReceivedBid);
+
+        for(double utilityTest = utilityLowerBound; utilityTest <= 0.95; utilityTest += 0.05){
+            if(oppImpMap.isCompromised(lastReceivedBid, oppFirstBids, utilityTest)){
+                getReporter().log(Level.INFO, "TIME: " + this.time);
+                getReporter().log(Level.INFO, "HEYO offer has OPP utility: " + utilityTest);
+                if (this.impMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, utilityTest, "ACCEPT")){
+                    getReporter().log(Level.INFO, "HEYO I accept the offer for, MY utility: " + utilityTest);
+                    return new Accept(me, lastReceivedBid);
+                }
+                break;
+            }
         }
-        if (this.impMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, utilityLowerBound, "ACCEPT")
-                && oppImpMap.isCompromised(lastReceivedBid, oppFirstBids, utilityLowerBound)){
-            /* getReporter().log(Level.INFO, "---" + me + " I accept the offer");*/
-            return new Accept(me, lastReceivedBid);
-        }
+
         return null;
     }
 
@@ -251,9 +255,10 @@ public class Group3 extends DefaultParty {
         this.utilityLowerBound = -pow(this.time/2, 2) + 0.95 + lostElicitScore.doubleValue();
 
         int knownBidNum = this.ourEstimatedProfile.getBids().size();
+        int knownBidNumOpp = this.opponentEstimatedProfile.getBids().size();
         this.numFirstBids = (int) (knownBidNum * (1 - this.utilityLowerBound)) + 1;
         this.numLastBids = (int) (knownBidNum * 0.30) - (int)(knownBidNum * (1 - this.utilityLowerBound)) + 1;
-        this.oppFirstBids = (int) (knownBidNum * (1 - this.utilityLowerBound)) + 1;
+        this.oppFirstBids = (int) (knownBidNumOpp * (1 - this.utilityLowerBound)) + 1;
 
         /*getReporter().log(Level.INFO, "----> Time :" + time + "  Similarity Lower Bound:" + this.utilityLowerBound);*/
         this.opponentEstimatedProfile.updateBid(counterOffer);

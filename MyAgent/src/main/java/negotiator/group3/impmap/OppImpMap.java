@@ -12,6 +12,7 @@ import tudelft.utilities.logging.Reporter;
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public class OppImpMap {
 
@@ -42,6 +43,10 @@ public class OppImpMap {
         renewLists();
 
         List<Bid> sortedBids = estimatedProfile.getBids();
+
+        if(sortedBids.size() == 0){
+            return false;
+        }
 
         // JUST TO TEST
         /*numFirstBids = sortedBids.size()-1;*/
@@ -113,10 +118,11 @@ public class OppImpMap {
         int changeRestWorst = (changeRest / 2) + (changeRest % 2);
 
         reporter.log( Level.INFO, "OPP Bid: "+ bid + " OPP MAX BID: " + maxImpBid);
+        reporter.log( Level.INFO, "OPP changeRestWorst: "+ changeRestWorst + " OPP changeRestBest: " + changeRestBest);
         reporter.log( Level.INFO, "OPP changedIssueBest: "+ changedIssueBest + " OPP changedIssueWorst: "+ changedIssueWorst + " OPP changedNotAvailable: "+ changedNotAvailable);
 
         if((changedIssueBest + changedNotAvailable) <= changeRestBest){
-            if((changedIssueWorst + /* 2 * */ changedNotAvailable + changedIssueBest) <= (changeRestBest + changeRestWorst)){
+            if((changedIssueWorst +  2 *  changedNotAvailable + changedIssueBest) <= (changeRestBest + changeRestWorst)){
                 reporter.log( Level.INFO, "OPP NOT COMPROMISED");
                 return false;
             }
@@ -126,16 +132,19 @@ public class OppImpMap {
     }
 
     public void update(OppSimpleLinearOrdering estimatedProfile) {
+
         renewMaps();
 
         this.estimatedProfile = estimatedProfile;
+
+        if(estimatedProfile.getBids().size() == 0){
+            return;
+        }
 
         /*reporter.log( Level.INFO, " Given Bids:  "+ estimatedProfile.getBids() );*/
 
 
         List<Bid> sortedBids = estimatedProfile.getBids();
-
-        this.maxImpBid = sortedBids.get(sortedBids.size() - 1);
 
         for(int bidIndex = 0; bidIndex < sortedBids.size(); bidIndex++){
             Bid currentBid = sortedBids.get(bidIndex);
@@ -150,6 +159,30 @@ public class OppImpMap {
                 }
             }
         }
+
+        HashMap<String, Value> maxBidMap = new HashMap<>();
+
+        this.maxImpBid = sortedBids.get(sortedBids.size() - 1);
+
+        /* Generate max bid by occurance (not working well)*/
+        /*
+        for (String issue : issueImpMap.keySet()) {
+            List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
+            Value maxCountValue = estimatedProfile.getBids().get(estimatedProfile.getBids().size()-1).getValue(issue);
+            int maxcount = 0;
+            for (OppImpUnit currentUnit : currentIssueList) {
+                List<Double> importanceListFiltered = currentUnit.importanceList.stream()
+                        .filter(u -> u <= (sortedBids.size() - 1) * 0.25).collect(Collectors.toList());
+                if(importanceListFiltered.size() > maxcount){
+                    maxcount = importanceListFiltered.size();
+                    maxCountValue = currentUnit.valueOfIssue;
+                }
+            }
+            maxBidMap.put(issue, maxCountValue);
+        }
+
+        this.maxImpBid = new Bid(maxBidMap);
+        */
 
         for (String issue : issueImpMap.keySet()) {
             List<Double> issueValAvgList = new ArrayList<>();

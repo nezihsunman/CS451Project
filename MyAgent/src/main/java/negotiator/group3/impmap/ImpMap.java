@@ -171,7 +171,7 @@ public class ImpMap {
 		}
 
 		if((changedIssueBest + changedNotAvailable) <= changeRestBest){
-			if((changedIssueWorst + /* 2 * */ changedNotAvailable + changedIssueBest) <= (changeRestBest + changeRestWorst)){
+			if((changedIssueWorst +  2 *  changedNotAvailable + changedIssueBest) <= (changeRestBest + changeRestWorst)){
 				if(callType.equals("OFFER")){
 					reporter.log( Level.INFO, "OFFERED Bid: "+ bid + " MAX BID: " + maxImpBid);
 					reporter.log( Level.INFO, "changedIssueBest: "+ changedIssueBest + " changedIssueWorst: "+ changedIssueWorst + " changedNotAvailable: "+ changedNotAvailable);
