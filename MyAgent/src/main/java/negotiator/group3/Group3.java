@@ -142,8 +142,8 @@ public class Group3 extends DefaultParty {
             getReporter().log(Level.INFO, "<AhBuNe>: Selecting first offer");
             return makeAnOffer();
         }
-        getReporter().log(Level.INFO, "<AhBuNe>: Entering Strategy selection");
-        getReporter().log(Level.INFO, "<AhBuNe>: Strategy selected");
+        //getReporter().log(Level.INFO, "<AhBuNe>: Entering Strategy selection");
+        //getReporter().log(Level.INFO, "<AhBuNe>: Strategy selected");
         //TODO: ELICITATION
         if (doWeElicitate()) {
             lostElicitScore.add(elicitationCost);
@@ -181,7 +181,7 @@ public class Group3 extends DefaultParty {
     }
 
     private Action makeAnOffer() throws IOException {
-        reporter.log(Level.INFO, "<AhBuNe>: numLastBids: " + this.numLastBids);
+        //reporter.log(Level.INFO, "<AhBuNe>: numLastBids: " + this.numLastBids);
         Bid oppMaxbid = null;
         if(oppLinearPartialOrdering.getBids().size() != 0){
          oppMaxbid = oppLinearPartialOrdering.getBids().get(oppLinearPartialOrdering.getBids().size() - 1);
@@ -189,6 +189,7 @@ public class Group3 extends DefaultParty {
         //TODO CHECK IF OPP > ME
         Bid ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(this.numFirstBids, this.numLastBids, this.utilityLowerBound, oppMaxbid);
         offeredOffers.put(ourOffer, "Fantasy"); // TODO RM
+        reporter.log(Level.INFO, "partyId: " + partyId);
         return new Offer(partyId, ourOffer);
     }
 
@@ -200,12 +201,12 @@ public class Group3 extends DefaultParty {
         if (ourUtilityValue > utilityLowerBound && oppUtilityValue < ourUtilityValue) {
             return new Accept(partyId, lastReceivedBid);
         }*/
+       getReporter().log(Level.INFO, "TIME: " + this.time);
         for(double utilityTest = utilityLowerBound; utilityTest <= 0.95; utilityTest += 0.05){
             if(oppSimilarityMap.isCompromised(bid, this.oppNumFirstBids, utilityTest)){
-                getReporter().log(Level.INFO, "TIME: " + this.time);
-                getReporter().log(Level.INFO, "HEYO offer has OPP utility: " + utilityTest);
+                //getReporter().log(Level.INFO, "HEYO offer has OPP utility: " + utilityTest);
                 if (this.ourSimilarityMap.isCompatibleWithSimilarity(bid, numFirstBids, numLastBids, utilityTest, "ACCEPT")){
-                    getReporter().log(Level.INFO, "HEYO I accept the offer for, MY utility: " + utilityTest);
+                    //getReporter().log(Level.INFO, "HEYO I accept the offer for, MY utility: " + utilityTest);
                     return true;
                 }
                 break;
@@ -252,8 +253,8 @@ public class Group3 extends DefaultParty {
             }
         }
 
-        if(isOpponent) getReporter().log(Level.INFO, "<AhBuNe>: OPP ESTIMATE: " + estimatedUtilityValue);
-        else getReporter().log(Level.INFO, "<AhBuNe>: OUR ESTIMATE: " + estimatedUtilityValue);
+        //if(isOpponent) getReporter().log(Level.INFO, "<AhBuNe>: OPP ESTIMATE: " + estimatedUtilityValue);
+        //else getReporter().log(Level.INFO, "<AhBuNe>: OUR ESTIMATE: " + estimatedUtilityValue);
 
 
 
@@ -278,10 +279,6 @@ public class Group3 extends DefaultParty {
     }
 
     int getNumLast(double utilityLowerBound, double minUtilityLowerBound, int knownBidNum) {
-        reporter.log(Level.INFO, "<AhBuNe>: minUtilityLowerBound: " + minUtilityLowerBound);
-        reporter.log(Level.INFO, "<AhBuNe>: knownBidNum: " + knownBidNum);
-        reporter.log(Level.INFO, "<AhBuNe>: getNumLast: " + ((int) (knownBidNum * (1 - minUtilityLowerBound)) - (int) (knownBidNum * (1 - utilityLowerBound)) + 1));
-
         return ((int) (knownBidNum * (1 - minUtilityLowerBound)) - (int) (knownBidNum * (1 - utilityLowerBound)) + 1);
     }
 

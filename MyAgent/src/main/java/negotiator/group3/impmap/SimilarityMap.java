@@ -194,8 +194,8 @@ public class SimilarityMap {
 		reporter.log(Level.INFO, "<AhBuNe>: Initial Values Assigned");
 
 		while(!(changeRestWorst == 0 && changeRestBest == 0)){
-			reporter.log(Level.INFO, "<AhBuNe>: changeRestWorst: " + changeRestWorst + " changeRestBest: " + changeRestBest);
-			reporter.log(Level.INFO, "<AhBuNe>: While");
+			//reporter.log(Level.INFO, "<AhBuNe>: changeRestWorst: " + changeRestWorst + " changeRestBest: " + changeRestBest);
+			//reporter.log(Level.INFO, "<AhBuNe>: While");
 			int notAvailableChance = Math.min(changeRestWorst, changeRestBest);
 			int bestIssueStartIndex = (sortedIssueArrList.size() + 1)/2;
 			int randIssue = random.nextInt(sortedIssueArrList.size());
@@ -210,7 +210,7 @@ public class SimilarityMap {
 				List<Value> availableIssueValueList = availableValues.get(issue);
 				List<Value> forbiddenIssueValueList = forbiddenValues.get(issue);
 				List<IssueValueUnit> allIssueValues = issueValueImpMap.get(issue);
-				reporter.log(Level.INFO, "<AhBuNe>: allIssueValues.size(): " + allIssueValues.size());
+				//reporter.log(Level.INFO, "<AhBuNe>: allIssueValues.size(): " + allIssueValues.size());
 
 				Value randomIssueValue;
 				int randIssueValueIndex = random.nextInt(allIssueValues.size());
@@ -222,8 +222,8 @@ public class SimilarityMap {
 				}
 				if(allAvailablesForbidden == false){
 					while(forbiddenIssueValueList.contains(randomIssueValue)){
-						reporter.log(Level.INFO, "<AhBuNe>: ForbiddenList: " + forbiddenIssueValueList);
-						reporter.log(Level.INFO, "<AhBuNe>: Available List: " + availableIssueValueList);
+						//reporter.log(Level.INFO, "<AhBuNe>: ForbiddenList: " + forbiddenIssueValueList);
+						//reporter.log(Level.INFO, "<AhBuNe>: Available List: " + availableIssueValueList);
 						randIssueValueIndex = random.nextInt(allIssueValues.size());
 						randomIssueValue = allIssueValues.get(randIssueValueIndex).valueOfIssue;
 					}
@@ -231,19 +231,19 @@ public class SimilarityMap {
 				}
 
 				boolean selectValue = false;
-				reporter.log(Level.INFO, "<AhBuNe>: bestIssueStartIndex: " + bestIssueStartIndex + " randIssue: " + randIssue + " changeRestWorst: " + changeRestWorst);
+				//reporter.log(Level.INFO, "<AhBuNe>: bestIssueStartIndex: " + bestIssueStartIndex + " randIssue: " + randIssue + " changeRestWorst: " + changeRestWorst);
 
 				if(!availableIssueValueList.contains(randomIssueValue)){
-					reporter.log(Level.INFO, "<AhBuNe>: not available ");
+					//reporter.log(Level.INFO, "<AhBuNe>: not available ");
 					if(notAvailableChance != 0){
-						reporter.log(Level.INFO, "<AhBuNe>: not available chance is used");
+						//reporter.log(Level.INFO, "<AhBuNe>: not available chance is used");
 						changeRestWorst --;
 						changeRestBest --;
 						selectValue = true;
 					}
 				}
 				else if(randIssue < bestIssueStartIndex){
-					reporter.log(Level.INFO, "<AhBuNe>: randIssue < bestIssueStartIndex ");
+					//reporter.log(Level.INFO, "<AhBuNe>: randIssue < bestIssueStartIndex ");
 					if(changeRestWorst != 0){
 						changeRestWorst--;
 						selectValue = true;
@@ -255,11 +255,11 @@ public class SimilarityMap {
 				}
 				if(selectValue){
 					createdBid.put(issue, randomIssueValue);
-					reporter.log(Level.INFO, "<AhBuNe>: VALUE SELECTED: " + availableIssueValueList);
+					//reporter.log(Level.INFO, "<AhBuNe>: VALUE SELECTED: " + selectValue);
 				}
 			}
 		}
-
+		reporter.log(Level.INFO, "<AhBuNe>: Offered Bid: " + createdBid);
 		return new Bid(createdBid);
 	}
 
