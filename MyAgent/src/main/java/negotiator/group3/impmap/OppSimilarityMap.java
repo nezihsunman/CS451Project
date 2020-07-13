@@ -72,6 +72,8 @@ public class OppSimilarityMap {
 
         int changedIssue= 0;
 
+        reporter.log( Level.INFO, "OPP ISSUE LIST SIZE: "+ issueList.size());
+
         for (int i = 0; i < issueList.size(); i++) {
             String issue = issueList.get(i);
             List<Value> availableIssueValueList = availableValues.get(issue);
@@ -84,6 +86,7 @@ public class OppSimilarityMap {
                 }
             }
         }
+        reporter.log( Level.INFO, "OPP COMPROMISE CHECK: "+ bid + " MAX BID: " + maxImpBid);
         if(changedIssue <= changeRest){
             return false;
         }
