@@ -261,6 +261,25 @@ public class OppSimilarityMap {
         return null;
     }
 
+    public LinkedHashMap<Bid,Integer> mostCompromisedBids(){
+        List<Bid> orderedBids =  estimatedProfile.getBids();
+        Bid maxUtilBid = orderedBids.get(orderedBids.size() - 1);
+        int maxCompromiseCount = 0;
+        HashMap<Bid,Integer> listOfOpponentCompremesid = new HashMap<>();
+        for(int i = 0; i < orderedBids.size(); i++){
+            Bid testBid = orderedBids.get(i);
+            int compromiseCount = 0;
+            for(String issue : issueImpMap.keySet()){
+                if(!maxUtilBid.getValue(issue).equals(testBid.getValue(issue))){
+                    compromiseCount ++;
+                }
+            }
+            listOfOpponentCompremesid.put(testBid,compromiseCount);
+        }
+        LinkedHashMap<Bid,Integer> sorted = sortByValueBid(listOfOpponentCompremesid);
+        return sorted;
+    }
+
     private LinkedHashMap<String, Double> sortByValue(HashMap<String, Double> hm)
     {
         List<Map.Entry<String, Double> > list =
@@ -274,6 +293,23 @@ public class OppSimilarityMap {
         });
         LinkedHashMap<String, Double> temp = new LinkedHashMap<String, Double>();
         for (Map.Entry<String, Double> aa : list) {
+            temp.put(aa.getKey(), aa.getValue());
+        }
+        return temp;
+    }
+    private LinkedHashMap<Bid, Integer> sortByValueBid(HashMap<Bid, Integer> hm)
+    {
+        List<Map.Entry<Bid, Integer> > list =
+                new LinkedList<Map.Entry<Bid, Integer> >(hm.entrySet());
+        Collections.sort(list, new Comparator<Map.Entry<Bid, Integer> >() {
+            public int compare(Map.Entry<Bid, Integer> o1,
+                               Map.Entry<Bid, Integer> o2)
+            {
+                return (o1.getValue()).compareTo(o2.getValue());
+            }
+        });
+        LinkedHashMap<Bid, Integer> temp = new LinkedHashMap<Bid, Integer>();
+        for (Map.Entry<Bid, Integer> aa : list) {
             temp.put(aa.getKey(), aa.getValue());
         }
         return temp;
