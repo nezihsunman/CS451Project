@@ -230,37 +230,6 @@ public class OppSimilarityMap {
         }
     }
 
-    public Bid leastKnownBidGenerator(AllBidsList allbids) throws IOException {
-
-        HashMap<String, Value> leastKnownBidValues= new HashMap<>();
-        for (String issue : issueImpMap.keySet()) {
-            List<OppIssueValueUnit> currentIssueList = issueValueImpMap.get(issue);
-            Value leastKnownIssueValue = null;
-            int minCount = Integer.MAX_VALUE;
-            for (OppIssueValueUnit currentUnit : currentIssueList) {
-                if (currentUnit.importanceList.size() < minCount) {
-                    minCount = currentUnit.importanceList.size();
-                    leastKnownIssueValue = currentUnit.valueOfIssue;
-                }
-            }
-            leastKnownBidValues.put(issue, leastKnownIssueValue);
-        }
-
-        for (Bid bid : allbids) {
-            boolean flag = true;
-            for (String issue : issueImpMap.keySet()) {
-                if (!bid.getValue(issue).equals(leastKnownBidValues.get(issue))){
-                    flag = false;
-                    break;
-                }
-            }
-            if(flag == true) {
-                return bid;
-            }
-        }
-        return null;
-    }
-
     public LinkedHashMap<Bid,Integer> mostCompromisedBids(){
         List<Bid> orderedBids =  estimatedProfile.getBids();
         Bid maxUtilBid = orderedBids.get(orderedBids.size() - 1);

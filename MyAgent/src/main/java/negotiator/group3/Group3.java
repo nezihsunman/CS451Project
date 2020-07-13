@@ -261,7 +261,7 @@ public class Group3 extends DefaultParty {
             this.elicitationBid = elicitationRandomBidGenerator();
             return true;
         }
-        else if(this.time > 0.98){
+        else if(this.time > 0.98 && oppLinearPartialOrdering.getBids().size() > 4){
             if(this.mostCompromisedBids.size() > 0){
                 this.elicitationBid = this.mostCompromisedBids.remove(this.mostCompromisedBids.size()-1).getKey();
                 oppElicitatedBid.add(elicitationBid);
@@ -331,7 +331,7 @@ public class Group3 extends DefaultParty {
     }
 
     double getUtilityLowerBound(double time, double lostElicitScore) {
-        return ((-pow(time / 2, 2) + /*0.95*/ 0.90) + lostElicitScore);
+        return ((-pow((1.6 * (time - 0.5)) / 2, 2) + 0.85) + lostElicitScore);
     }
 
     int getNumFirst(double utilityLowerBound, int knownBidNum) {
