@@ -48,8 +48,8 @@ public class SimilarityMap {
 
 		int firstStartIndex = (sortedBids.size()-1) - numFirstBids;
 
-		if(firstStartIndex < 0){
-			firstStartIndex = 0;
+		if(firstStartIndex <= 0){
+			firstStartIndex = 1;
 		}
 
 		for(int bidIndex = firstStartIndex; bidIndex < sortedBids.size(); bidIndex++){
@@ -67,8 +67,8 @@ public class SimilarityMap {
 			}
 		}
 
-		if(numLastBids > sortedBids.size()){
-			numLastBids = sortedBids.size();
+		if(numLastBids >= sortedBids.size()){
+			numLastBids = sortedBids.size() - 1;
 		}
 
 		for(int bidIndex = 0; bidIndex < numLastBids; bidIndex++){
@@ -192,7 +192,7 @@ public class SimilarityMap {
 		}
 
 		reporter.log(Level.INFO, "<AhBuNe>: Initial Values Assigned");
-
+		int selectOppValueCount = 0;
 		while(!(changeRestWorst == 0 && changeRestBest == 0)){
 			//reporter.log(Level.INFO, "<AhBuNe>: changeRestWorst: " + changeRestWorst + " changeRestBest: " + changeRestBest);
 			//reporter.log(Level.INFO, "<AhBuNe>: While");
@@ -214,8 +214,9 @@ public class SimilarityMap {
 
 				Value randomIssueValue;
 				int randIssueValueIndex = random.nextInt(allIssueValues.size());
-				if (oppMaxbid != null){
+				if (selectOppValueCount < 1000 && oppMaxbid != null){
 					randomIssueValue = oppMaxbid.getValue(issue);
+					selectOppValueCount++;
 				}
 				else{
 					randomIssueValue = allIssueValues.get(randIssueValueIndex).valueOfIssue;

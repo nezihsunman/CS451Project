@@ -52,13 +52,14 @@ public class Group3 extends DefaultParty {
 
     // Initially no loss
     private BigDecimal lostElicitScore = new BigDecimal("0.00");
+    //Set default as 0.01 by Genius Framework
+    private BigDecimal elicitationCost = new BigDecimal("0.01");
+    private final BigDecimal maxElicitationLost = new BigDecimal("0.05");
+    private int leftElicitationNumber = 0;
 
     // If no reservation ratio is assigned by the system then it is equal to 0 by default
     private double reservationUtility = 0.0;
     private Bid reservationBid = null;
-
-    //Set default as 0.01 by Genius Framework
-    private BigDecimal elicitationCost = new BigDecimal("0.01");
 
     /*DEBUG*/
     private HashMap<Bid, String> offeredOffers = new HashMap<>(); //TODO REMOVE AFTER TESTS
@@ -128,8 +129,12 @@ public class Group3 extends DefaultParty {
             this.oppLinearPartialOrdering = new OppSimpleLinearOrdering();
             this.ourSimilarityMap.update(ourLinearPartialOrdering);
             getReservationRatio();
+            try{
+                this.elicitationCost = new BigDecimal(settings.getParameters().get("elicitationcost").toString());
+                this.leftElicitationNumber = maxElicitationLost.divide(elicitationCost).intValue();
+            }catch (Exception e){
 
-            getReporter().log(Level.INFO, "<AhBuNe>: Init finished");
+            }
 
         } else {
             throw new UnsupportedOperationException("Only <DefaultPartialOrdering> is supported");
@@ -147,6 +152,7 @@ public class Group3 extends DefaultParty {
         //TODO: ELICITATION
         if (doWeElicitate()) {
             lostElicitScore.add(elicitationCost);
+            this.leftElicitationNumber -= 1;
             return new ElicitComparison(partyId, lastReceivedBid, ourLinearPartialOrdering.getBids());
         }
         //if not Accepted return null
@@ -216,12 +222,22 @@ public class Group3 extends DefaultParty {
     }
 
     private boolean doWeElicitate() {
+        if(this.leftElicitationNumber == 0){
+            return false;
+        }
+        if(this.ourLinearPartialOrdering.getBids().size() < 5){
+            return true;
+        }else if (this.ourLinearPartialOrdering.getBids().size() < 5)  {
+
+        }
+
         return false;
     }
 
 
     private void strategySelection() {
-        this.utilityLowerBound = getUtilityLowerBound(this.time, lostElicitScore.doubleValue()); int knownBidNum = this.ourLinearPartialOrdering.getBids().size();
+        this.utilityLowerBound = getUtilityLowerBound(this.time, lostElicitScore.doubleValue());
+        int knownBidNum = this.ourLinearPartialOrdering.getBids().size();
         int oppKnownBidNum = this.oppLinearPartialOrdering.getBids().size();
         this.numFirstBids = getNumFirst(this.utilityLowerBound, knownBidNum);
         this.numLastBids = getNumLast(this.utilityLowerBound, getUtilityLowerBound(1.0, lostElicitScore.doubleValue()), knownBidNum);
