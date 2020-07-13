@@ -140,14 +140,30 @@ public class SimilarityMap {
 			reporter.log( Level.INFO, "changedIssueBest: "+ changedIssueBest + " changedIssueWorst: "+ changedIssueWorst + " changedNotAvailable: "+ changedNotAvailable);
 		}
 
-		if((changedIssueBest + changedNotAvailable) <= changeRestBest){
-			if((changedIssueWorst +  2 *  changedNotAvailable + changedIssueBest) <= (changeRestBest + changeRestWorst)){
-				if(callType.equals("OFFER")){
-					reporter.log( Level.INFO, "OFFERED Bid: "+ bid + " MAX BID: " + maxImpBid);
-					reporter.log( Level.INFO, "changedIssueBest: "+ changedIssueBest + " changedIssueWorst: "+ changedIssueWorst + " changedNotAvailable: "+ changedNotAvailable);
-				}
-				return true;
+		changedIssueBest += changedNotAvailable;
+		changedIssueWorst += changedNotAvailable;
+
+		//TODO check if logic is true
+		int exceedBestBidNum =  changedIssueBest - changeRestBest;
+		if(exceedBestBidNum > 0){
+			int equivalentWorstBidNum = exceedBestBidNum * 2;
+			changedIssueBest -= exceedBestBidNum;
+			changedIssueWorst += equivalentWorstBidNum;
+		}
+
+		int exceedWorstBidNum =  changedIssueWorst - changeRestWorst;
+		if(exceedWorstBidNum > 0){
+			int equivalentBestBidNum = (exceedWorstBidNum + 1) / 2;
+			changedIssueWorst -= exceedWorstBidNum;
+			changedIssueBest += equivalentBestBidNum;
+		}
+
+		if(changedIssueBest <= changeRestBest && changedIssueWorst <= changeRestWorst){
+			if(callType.equals("OFFER")){
+				reporter.log( Level.INFO, "OFFERED Bid: "+ bid + " MAX BID: " + maxImpBid);
+				reporter.log( Level.INFO, "changedIssueBest: "+ changedIssueBest + " changedIssueWorst: "+ changedIssueWorst + " changedNotAvailable: "+ changedNotAvailable);
 			}
+			return true;
 		}
 		return false;
 	}
