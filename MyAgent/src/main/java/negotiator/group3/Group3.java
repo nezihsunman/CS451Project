@@ -8,7 +8,6 @@ import geniusweb.party.DefaultParty;
 import geniusweb.party.inform.*;
 import geniusweb.profile.FullOrdering;
 import geniusweb.profile.PartialOrdering;
-import geniusweb.profile.utilityspace.LinearAdditive;
 import geniusweb.profileconnection.ProfileConnectionFactory;
 import geniusweb.profileconnection.ProfileInterface;
 import geniusweb.progress.Progress;
@@ -138,24 +137,23 @@ public class Group3 extends DefaultParty {
 
     }
 
-    private Action actionOperation() throws IOException {
+    private Action selectAction() throws IOException {
         if (this.lastReceivedBid == null) {
             getReporter().log(Level.INFO, "<AhBuNe>: Selecting first offer");
             return makeAnOffer();
         }
         getReporter().log(Level.INFO, "<AhBuNe>: Entering Strategy selection");
-        strategySelection();
         getReporter().log(Level.INFO, "<AhBuNe>: Strategy selected");
         //TODO: ELICITATION
-        if (doWeElicitateCheck()) {
+        if (doWeElicitate()) {
             lostElicitScore.add(elicitationCost);
             return new ElicitComparison(partyId, lastReceivedBid, ourLinearPartialOrdering.getBids());
         }
         //if not Accepted return null
         if (doWeEndTheNegotiation()) {
             return new EndNegotiation(partyId);
-        } else if (doWeAccept() != null) {
-            return doWeAccept();
+        } else if (doWeAccept(lastReceivedBid)) {
+            return new Accept(partyId, lastReceivedBid);
         }
         return makeAnOffer();
 
@@ -163,7 +161,8 @@ public class Group3 extends DefaultParty {
 
     private void myTurn() throws IOException {
         time = progress.get(System.currentTimeMillis());
-        Action action = this.actionOperation();
+        strategySelection();
+        Action action = this.selectAction();
         getReporter().log(Level.INFO, "<AhBuNe>: Action: " + action);
         getConnection().send(action);
     }
@@ -205,62 +204,49 @@ public class Group3 extends DefaultParty {
             if (ourOffer != null) break;
             bidImportanceLowerBound -= 0.04;
         }*/
-
-
-        Bid ourOffer = null;
-        while (true) {
-            for (int i = 0; i < allPossibleBidsSize.intValue(); i++) {
-                Bid testBid = randomBidGenerator();
-                if (ourSimilarityMap.isCompatibleWithSimilarity(testBid, numFirstBids, numLastBids, utilityLowerBound,"OFFER") ) {
-                    ourOffer = testBid;
-                    break;
-                }
-            }
-            if (ourOffer != null) break;
-        }
-
-
+        reporter.log(Level.INFO, "<AhBuNe>: numLastBids: " + this.numLastBids);
+        Bid ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(this.numFirstBids, this.numLastBids, this.utilityLowerBound);
         offeredOffers.put(ourOffer, "Fantasy"); // TODO RM
         return new Offer(partyId, ourOffer);
     }
 
 
 
-    private Action doWeAccept() {
+    private boolean doWeAccept(Bid bid) {
        /* double oppUtilityValue = estimatedUtilityValue(lastReceivedBid, true);
         double ourUtilityValue = estimatedUtilityValue(lastReceivedBid, false);
         if (ourUtilityValue > utilityLowerBound && oppUtilityValue < ourUtilityValue) {
             return new Accept(partyId, lastReceivedBid);
         }*/
         for(double utilityTest = utilityLowerBound; utilityTest <= 0.95; utilityTest += 0.05){
-            if(oppSimilarityMap.isCompromised(lastReceivedBid, this.oppNumFirstBids, utilityTest)){
+            if(oppSimilarityMap.isCompromised(bid, this.oppNumFirstBids, utilityTest)){
                 getReporter().log(Level.INFO, "TIME: " + this.time);
                 getReporter().log(Level.INFO, "HEYO offer has OPP utility: " + utilityTest);
-                if (this.ourSimilarityMap.isCompatibleWithSimilarity(lastReceivedBid, numFirstBids, numLastBids, utilityTest, "ACCEPT")){
+                if (this.ourSimilarityMap.isCompatibleWithSimilarity(bid, numFirstBids, numLastBids, utilityTest, "ACCEPT")){
                     getReporter().log(Level.INFO, "HEYO I accept the offer for, MY utility: " + utilityTest);
-                    return new Accept(partyId, lastReceivedBid);
+                    return true;
                 }
                 break;
             }
         }
-        return null;
+        return false;
     }
 
-    private boolean doWeElicitateCheck() {
+    private boolean doWeElicitate() {
         return false;
     }
 
 
     private void strategySelection() {
-        this.utilityLowerBound = getUtilityLowerBound(this.time, lostElicitScore.doubleValue());
-        int knownBidNum = this.ourLinearPartialOrdering.getBids().size();
+        this.utilityLowerBound = getUtilityLowerBound(this.time, lostElicitScore.doubleValue()); int knownBidNum = this.ourLinearPartialOrdering.getBids().size();
         int oppKnownBidNum = this.oppLinearPartialOrdering.getBids().size();
         this.numFirstBids = getNumFirst(this.utilityLowerBound, knownBidNum);
         this.numLastBids = getNumLast(this.utilityLowerBound, getUtilityLowerBound(1.0, lostElicitScore.doubleValue()), knownBidNum);
-        this.oppNumFirstBids = getOppNumFirst(this.utilityLowerBound, oppKnownBidNum);
-
-        this.oppLinearPartialOrdering.updateBid(lastReceivedBid);
-        this.oppSimilarityMap.update(oppLinearPartialOrdering);
+        if(lastReceivedBid != null){
+            this.oppNumFirstBids = getOppNumFirst(this.utilityLowerBound, oppKnownBidNum);
+            this.oppLinearPartialOrdering.updateBid(lastReceivedBid);
+            this.oppSimilarityMap.update(oppLinearPartialOrdering);
+        }
     }
 
     public double estimatedUtilityValue(Bid bid, boolean isOpponent) {
@@ -310,7 +296,11 @@ public class Group3 extends DefaultParty {
     }
 
     int getNumLast(double utilityLowerBound, double minUtilityLowerBound, int knownBidNum) {
-        return ((int) (knownBidNum * minUtilityLowerBound) - (int) (knownBidNum * (1 - utilityLowerBound)) + 1);
+        reporter.log(Level.INFO, "<AhBuNe>: minUtilityLowerBound: " + minUtilityLowerBound);
+        reporter.log(Level.INFO, "<AhBuNe>: knownBidNum: " + knownBidNum);
+        reporter.log(Level.INFO, "<AhBuNe>: getNumLast: " + ((int) (knownBidNum * (1 - minUtilityLowerBound)) - (int) (knownBidNum * (1 - utilityLowerBound)) + 1));
+
+        return ((int) (knownBidNum * (1 - minUtilityLowerBound)) - (int) (knownBidNum * (1 - utilityLowerBound)) + 1);
     }
 
     int getOppNumFirst(double utilityLowerBound, int oppKnownBidNum) {

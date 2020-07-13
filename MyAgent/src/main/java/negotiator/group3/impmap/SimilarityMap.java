@@ -41,13 +41,10 @@ public class SimilarityMap {
 		renewMaps();
 	}
 
-	public boolean isCompatibleWithSimilarity(Bid bid, int numFirstBids, int numLastBids, double minUtility, String callType){
+	private void createConditionLists(int numFirstBids, int numLastBids){
 		renewLists();
 
 		List<Bid> sortedBids = estimatedProfile.getBids();
-
-		// JUST TO TEST
-		/*numFirstBids = sortedBids.size()-1;*/
 
 		int firstStartIndex = (sortedBids.size()-1) - numFirstBids;
 
@@ -70,11 +67,8 @@ public class SimilarityMap {
 			}
 		}
 
-		// JUST TO TEST
-		/*numLastBids = 1;*/
-
 		if(numLastBids > sortedBids.size()){
-			numFirstBids = sortedBids.size();
+			numLastBids = sortedBids.size();
 		}
 
 		for(int bidIndex = 0; bidIndex < numLastBids; bidIndex++){
@@ -91,9 +85,10 @@ public class SimilarityMap {
 				}
 			}
 		}
+	}
 
-		/*reporter.log( Level.INFO, "availableValues:"+ availableValues);
-		reporter.log( Level.INFO, "forbiddenValues:"+ forbiddenValues);*/
+	public boolean isCompatibleWithSimilarity(Bid bid, int numFirstBids, int numLastBids, double minUtility, String callType){
+		createConditionLists(numFirstBids, numLastBids);
 
 		double issueChangeLoss = 1.0 / domain.getIssues().size();
 		int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1;
@@ -122,46 +117,20 @@ public class SimilarityMap {
 
 			List<Value> availableIssueValueList = availableValues.get(issue);
 
-			if(allAvailablesForbidden == false){
-				if(i < (sortedIssueArrList.size() + 1)/2){
-					if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
-						if(!availableIssueValueList.contains(bid.getValue(issue))){
-							changedNotAvailable++;
-						}
-						else{
-							changedIssueWorst++;
-						}
-					}
+			if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+				if (allAvailablesForbidden == false && forbiddenValues.get(issue).contains(bid.getValue(issue))){
+					return false;
+				}
+				if(!availableIssueValueList.contains(bid.getValue(issue))){
+					changedNotAvailable++;
+				}
+				else if(i < (sortedIssueArrList.size() + 1)/2){
+					changedIssueWorst++;
 				}
 				else{
-					if (forbiddenValues.get(issue).contains(bid.getValue(issue))){
-						return false;
-					}
-					else if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
-						if(!availableIssueValueList.contains(bid.getValue(issue))){
-							changedNotAvailable++;
-						}
-						else{
-							changedIssueBest++;
-						}
-					}
+					changedIssueBest++;
 				}
 			}
-
-			else{
-				if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
-					if(!availableValues.get(issue).contains(bid.getValue(issue))){
-						changedNotAvailable++;
-					}
-					else if(i < (sortedIssueArrList.size() + 1)/2){
-						changedIssueWorst++;
-					}
-					else{
-						changedIssueBest ++;
-					}
-				}
-			}
-
 		}
 		int changeRestBest = changeRest / 2;
 		int changeRestWorst = (changeRest / 2) + (changeRest % 2);
@@ -178,10 +147,91 @@ public class SimilarityMap {
 					reporter.log( Level.INFO, "changedIssueBest: "+ changedIssueBest + " changedIssueWorst: "+ changedIssueWorst + " changedNotAvailable: "+ changedNotAvailable);
 				}
 				return true;
-
 			}
 		}
 		return false;
+	}
+
+	public Bid findBidCompatibleWithSimilarity(int numFirstBids, int numLastBids, double minUtility){
+		reporter.log(Level.INFO, "<AhBuNe>: Trying to find bid to offer");
+		createConditionLists(numFirstBids, numLastBids);
+		reporter.log(Level.INFO, "<AhBuNe>: Condition Lists Created");
+
+		double issueChangeLoss = 1.0 / domain.getIssues().size();
+		int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1;
+
+		if(changeRest > domain.getIssues().size()){
+			changeRest = domain.getIssues().size();
+		}
+
+		int changeRestBest = changeRest / 2;
+		int changeRestWorst = (changeRest / 2) + (changeRest % 2);
+
+		Set<Map.Entry<String, Double>> sortedIssueMapSet = sortedIssueImpMap.entrySet();
+		ArrayList<Map.Entry<String, Double>> sortedIssueArrList = new ArrayList<Map.Entry<String, Double>>(sortedIssueMapSet);
+		HashMap<String, Value> createdBid = new HashMap<>();
+		for(int i = 0; i< sortedIssueMapSet.size(); i++){
+			String issue = sortedIssueArrList.get(i).getKey();
+			createdBid.put(issue, this.maxImpBid.getValue(issue));
+		}
+
+		reporter.log(Level.INFO, "<AhBuNe>: Initial Values Assigned");
+
+		while(!(changeRestWorst == 0 && changeRestBest == 0)){
+			reporter.log(Level.INFO, "<AhBuNe>: changeRestWorst: " + changeRestWorst + " changeRestBest: " + changeRestBest);
+			reporter.log(Level.INFO, "<AhBuNe>: While");
+			int notAvailableChance = Math.min(changeRestWorst, changeRestBest);
+			int bestIssueStartIndex = (sortedIssueArrList.size() + 1)/2;
+			int randIssue = random.nextInt(sortedIssueArrList.size());
+			if((randIssue < bestIssueStartIndex && changeRestWorst != 0) ||(randIssue >= bestIssueStartIndex && changeRestBest != 0)){
+				String issue = sortedIssueArrList.get(randIssue).getKey();
+				boolean allAvailablesForbidden = true;
+				for(Value issueValue: this.availableValues.get(issue)){
+					if(!this.forbiddenValues.get(issue).contains(issueValue)){
+						allAvailablesForbidden = false;
+					}
+				}
+				List<Value> availableIssueValueList = availableValues.get(issue);
+				List<Value> forbiddenIssueValueList = forbiddenValues.get(issue);
+				List<IssueValueUnit> allIssueValues = issueValueImpMap.get(issue);
+
+				int randIssueValueIndex = random.nextInt(allIssueValues.size());
+				Value randomIssueValue = allIssueValues.get(randIssueValueIndex).valueOfIssue;
+				if(allAvailablesForbidden == false){
+					while(!forbiddenIssueValueList.contains(randomIssueValue)){
+						reporter.log(Level.INFO, "<AhBuNe>: ForbiddenList: " + forbiddenIssueValueList);
+						reporter.log(Level.INFO, "<AhBuNe>: Available List: " + availableIssueValueList);
+						randIssueValueIndex = random.nextInt(allIssueValues.size());
+						randomIssueValue = allIssueValues.get(randIssueValueIndex).valueOfIssue;
+					}
+					reporter.log(Level.INFO, "<AhBuNe>: EXIT WHILE: ");
+				}
+
+				boolean selectValue = false;
+
+				if(!availableIssueValueList.contains(randomIssueValue)){
+					if(notAvailableChance != 0){
+						changeRestWorst --;
+						changeRestBest --;
+						selectValue = true;
+					}
+				}
+				else if(randIssue < bestIssueStartIndex && changeRestWorst != 0){
+					changeRestWorst--;
+					selectValue = true;
+				}
+				else if(changeRestBest != 0){
+					changeRestBest--;
+					selectValue = true;
+				}
+				if(selectValue){
+					createdBid.put(issue, randomIssueValue);
+					reporter.log(Level.INFO, "<AhBuNe>: VALUE SELECTED: " + availableIssueValueList);
+				}
+			}
+		}
+
+		return new Bid(createdBid);
 	}
 
 
