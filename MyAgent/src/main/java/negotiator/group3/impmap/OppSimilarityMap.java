@@ -1,6 +1,5 @@
 package negotiator.group3.impmap;
 
-import geniusweb.bidspace.AllBidsList;
 import geniusweb.issuevalue.Bid;
 import geniusweb.issuevalue.Domain;
 import geniusweb.issuevalue.Value;
@@ -9,22 +8,18 @@ import geniusweb.profile.Profile;
 import negotiator.group3.linearorder.OppSimpleLinearOrdering;
 import tudelft.utilities.logging.Reporter;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
 
 public class OppSimilarityMap {
 
     private Domain domain;
-    private HashMap<String, List<OppIssueValueUnit>> issueValueImpMap;
+    private HashMap<String, List<OppIssueValueUnit>> oppIssueValueImpMap;
     private HashMap<String,Double> issueImpMap;
-    private OppSimpleLinearOrdering estimatedProfile;
+    private OppSimpleLinearOrdering oppEstimatedProfile;
     private Bid maxImpBid;
     private HashMap<String, List<Value>> availableValues;
-    private List<Integer> randomFoundValueList;
-    private final Random random = new Random();
     private List<String> issueList = new ArrayList<>();
-    private LinkedHashMap<String, Double> sortedIssueImpMap;
     private Reporter reporter;
 
 
@@ -38,28 +33,21 @@ public class OppSimilarityMap {
         renewMaps();
     }
 
-    public boolean isCompromised(Bid bid, int numFirstBids, double minUtility){
+    private void createConditionLists(int numFirstBids){
         renewLists();
 
-        List<Bid> sortedBids = estimatedProfile.getBids();
-
-        if(sortedBids.size() == 0){
-            return false;
-        }
-
-        // JUST TO TEST
-        /*numFirstBids = sortedBids.size()-1;*/
+        List<Bid> sortedBids = oppEstimatedProfile.getBids();
 
         int firstStartIndex = (sortedBids.size()-1) - numFirstBids;
 
-        if(firstStartIndex < 0){
+        if(firstStartIndex <= 0){
             firstStartIndex = 0;
         }
 
         for(int bidIndex = firstStartIndex; bidIndex < sortedBids.size(); bidIndex++){
             Bid currentBid = sortedBids.get(bidIndex);
             for (String issue : currentBid.getIssues()) {
-                List<OppIssueValueUnit> currentIssueList = issueValueImpMap.get(issue);
+                List<OppIssueValueUnit> currentIssueList = oppIssueValueImpMap.get(issue);
                 for (OppIssueValueUnit currentUnit : currentIssueList) {
                     if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
                         if(!availableValues.get(issue).contains(currentBid.getValue(issue))){
@@ -70,9 +58,10 @@ public class OppSimilarityMap {
                 }
             }
         }
+    }
 
-		/*reporter.log( Level.INFO, "availableValues:"+ availableValues);
-		reporter.log( Level.INFO, "forbiddenValues:"+ forbiddenValues);*/
+    public boolean isCompromised(Bid bid, int numFirstBids,  double minUtility){
+        createConditionLists(numFirstBids);
 
         double issueChangeLoss = 1.0 / domain.getIssues().size();
         int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1;
@@ -81,75 +70,43 @@ public class OppSimilarityMap {
             changeRest = domain.getIssues().size();
         }
 
-        int changedIssueBest = 0;
-        int changedIssueWorst = 0;
-        int changedNotAvailable = 0;
+        int changedIssue= 0;
 
-
-        Set<Map.Entry<String, Double>> sortedIssueMapSet = sortedIssueImpMap.entrySet();
-        ArrayList<Map.Entry<String, Double>> sortedIssueArrList = new ArrayList<Map.Entry<String, Double>>(sortedIssueMapSet);
-
-        for (int i = 0; i < sortedIssueArrList.size(); i++) {
-            String issue = sortedIssueArrList.get(i).getKey();
+        for (int i = 0; i < issueList.size(); i++) {
+            String issue = issueList.get(i);
             List<Value> availableIssueValueList = availableValues.get(issue);
-            if(i < (sortedIssueArrList.size() + 1)/2){
-                if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
-                    if(!availableIssueValueList.contains(bid.getValue(issue))){
-                        changedNotAvailable++;
-                    }
-                    else{
-                        changedIssueWorst++;
-                    }
+            if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
+                if(!availableIssueValueList.contains(bid.getValue(issue))){
+                    changedIssue += 2;
                 }
-            }
-            else{
-                if(!maxImpBid.getValue(issue).equals(bid.getValue(issue))){
-                    if(!availableIssueValueList.contains(bid.getValue(issue))){
-                        changedNotAvailable++;
-                    }
-                    else{
-                        changedIssueBest++;
-                    }
+                else{
+                    changedIssue++;
                 }
             }
         }
-        int changeRestBest = changeRest / 2;
-        int changeRestWorst = (changeRest / 2) + (changeRest % 2);
-
-        reporter.log( Level.INFO, "OPP Bid: "+ bid + " OPP MAX BID: " + maxImpBid);
-        reporter.log( Level.INFO, "OPP changeRestWorst: "+ changeRestWorst + " OPP changeRestBest: " + changeRestBest);
-        reporter.log( Level.INFO, "OPP changedIssueBest: "+ changedIssueBest + " OPP changedIssueWorst: "+ changedIssueWorst + " OPP changedNotAvailable: "+ changedNotAvailable);
-
-        if((changedIssueBest + changedNotAvailable) <= changeRestBest){
-            if((changedIssueWorst +  2 *  changedNotAvailable + changedIssueBest) <= (changeRestBest + changeRestWorst)){
-                reporter.log( Level.INFO, "OPP NOT COMPROMISED");
-                return false;
-            }
+        if(changedIssue <= changeRest){
+            return false;
         }
-        reporter.log( Level.INFO, "OPP COMPROMISED");
         return true;
     }
 
     public void update(OppSimpleLinearOrdering estimatedProfile) {
-
         renewMaps();
 
-        this.estimatedProfile = estimatedProfile;
+        this.oppEstimatedProfile = estimatedProfile;
 
-        if(estimatedProfile.getBids().size() == 0){
-            return;
-        }
-
-        /*reporter.log( Level.INFO, " Given Bids:  "+ estimatedProfile.getBids() );*/
+        reporter.log( Level.INFO, " Given Bids:  "+ estimatedProfile.getBids() );
 
 
         List<Bid> sortedBids = estimatedProfile.getBids();
+
+        this.maxImpBid = sortedBids.get(sortedBids.size() - 1);
 
         for(int bidIndex = 0; bidIndex < sortedBids.size(); bidIndex++){
             Bid currentBid = sortedBids.get(bidIndex);
             double bidImportance = estimatedProfile.getUtility(currentBid).doubleValue();
             for (String issue : currentBid.getIssues()) {
-                List<OppIssueValueUnit> currentIssueList = issueValueImpMap.get(issue);
+                List<OppIssueValueUnit> currentIssueList = oppIssueValueImpMap.get(issue);
                 for (OppIssueValueUnit currentUnit : currentIssueList) {
                     if (currentUnit.valueOfIssue.equals(currentBid.getValue(issue))) {
                         currentUnit.importanceList.add(bidImportance);
@@ -158,80 +115,33 @@ public class OppSimilarityMap {
                 }
             }
         }
-
-        HashMap<String, Value> maxBidMap = new HashMap<>();
-
-        this.maxImpBid = sortedBids.get(sortedBids.size() - 1);
-
-        /* Generate max bid by occurance (not working well)*/
-        /*
-        for (String issue : issueImpMap.keySet()) {
-            List<OppImpUnit> currentIssueList = issueValueImpMap.get(issue);
-            Value maxCountValue = estimatedProfile.getBids().get(estimatedProfile.getBids().size()-1).getValue(issue);
-            int maxcount = 0;
-            for (OppImpUnit currentUnit : currentIssueList) {
-                List<Double> importanceListFiltered = currentUnit.importanceList.stream()
-                        .filter(u -> u <= (sortedBids.size() - 1) * 0.25).collect(Collectors.toList());
-                if(importanceListFiltered.size() > maxcount){
-                    maxcount = importanceListFiltered.size();
-                    maxCountValue = currentUnit.valueOfIssue;
-                }
-            }
-            maxBidMap.put(issue, maxCountValue);
-        }
-
-        this.maxImpBid = new Bid(maxBidMap);
-        */
-
-        for (String issue : issueImpMap.keySet()) {
-            List<Double> issueValAvgList = new ArrayList<>();
-            List<OppIssueValueUnit> currentIssueList = issueValueImpMap.get(issue);
-            double issueImp = 0.0;
-            for (OppIssueValueUnit currentUnit : currentIssueList) {
-                if(currentUnit.importanceList.size() != 0){
-                    for (int i = 0; i < currentUnit.importanceList.size(); i++) {
-                        double issueUnitImp = currentUnit.importanceList.get(i);
-                        if(i != currentUnit.importanceList.size() - 1){
-                            double nextIssueUnitImp = currentUnit.importanceList.get(i + 1);
-                            if(nextIssueUnitImp != issueUnitImp){
-                                issueImp -= 1;
-                            }
-                        }
-                    }
-                }
-            }
-            issueImpMap.put(issue, issueImp);
-        }
-
-        sortedIssueImpMap = sortByValue(issueImpMap);
-
     }
 
     private void renewMaps(){
-        issueValueImpMap = new HashMap<>();
+        oppIssueValueImpMap = new HashMap<>();
         issueImpMap = new HashMap<>();
         // Create empty importance map
         for (String issue : domain.getIssues()) {
             issueImpMap.put(issue, 0.0);
             ValueSet values = domain.getValues(issue);
-            List<OppIssueValueUnit> issueOppIssueValueUnit = new ArrayList<>();
+            List<OppIssueValueUnit> issueIssueValueUnit = new ArrayList<>();
             for (Value value : values) {
-                issueOppIssueValueUnit.add(new OppIssueValueUnit(value));
+                issueIssueValueUnit.add(new OppIssueValueUnit(value));
             }
-            issueValueImpMap.put(issue, issueOppIssueValueUnit);
+            oppIssueValueImpMap.put(issue, issueIssueValueUnit);
         }
     }
 
     private void renewLists(){
         availableValues = new HashMap<>();
-        // Create empty map
+        // Create empty maps
         for (String issue : domain.getIssues()) {
             availableValues.put(issue, new ArrayList<>());
         }
     }
 
     public LinkedHashMap<Bid,Integer> mostCompromisedBids(){
-        List<Bid> orderedBids =  estimatedProfile.getBids();
+        List<Bid> orderedBids =  oppEstimatedProfile.getBids();
         Bid maxUtilBid = orderedBids.get(orderedBids.size() - 1);
         int maxCompromiseCount = 0;
         HashMap<Bid,Integer> listOfOpponentCompremesid = new HashMap<>();
@@ -249,23 +159,6 @@ public class OppSimilarityMap {
         return sorted;
     }
 
-    private LinkedHashMap<String, Double> sortByValue(HashMap<String, Double> hm)
-    {
-        List<Map.Entry<String, Double> > list =
-                new LinkedList<Map.Entry<String, Double> >(hm.entrySet());
-        Collections.sort(list, new Comparator<Map.Entry<String, Double> >() {
-            public int compare(Map.Entry<String, Double> o1,
-                               Map.Entry<String, Double> o2)
-            {
-                return (o1.getValue()).compareTo(o2.getValue());
-            }
-        });
-        LinkedHashMap<String, Double> temp = new LinkedHashMap<String, Double>();
-        for (Map.Entry<String, Double> aa : list) {
-            temp.put(aa.getKey(), aa.getValue());
-        }
-        return temp;
-    }
     private LinkedHashMap<Bid, Integer> sortByValueBid(HashMap<Bid, Integer> hm)
     {
         List<Map.Entry<Bid, Integer> > list =

@@ -202,23 +202,23 @@ public class Group3 extends DefaultParty {
 
     private Action makeAnOffer() throws IOException {
         //reporter.log(Level.INFO, "<AhBuNe>: numLastBids: " + this.numLastBids);
-
         if(time > 0.96){
             for(int i = ourLinearPartialOrdering.getBids().size()-1; i >= 0 ; i--){
                 Bid testBid = ourLinearPartialOrdering.getBids().get(i);
-                if(oppElicitatedBid.contains(testBid)){
+                if(oppElicitatedBid.contains(testBid) && oppSimilarityMap.isCompromised(testBid, this.oppNumFirstBids, utilityLowerBound) && ourSimilarityMap.isCompatibleWithSimilarity(testBid, this.numFirstBids, this.numLastBids, utilityLowerBound, "OFFER")){
+                    reporter.log(Level.INFO, "IMKANSIZI BASARDIK");
                     return new Offer(partyId, testBid);
                 }
             }
         }
-
-
         Bid oppMaxbid = null;
         if (oppLinearPartialOrdering.getBids().size() != 0) {
             oppMaxbid = oppLinearPartialOrdering.getBids().get(oppLinearPartialOrdering.getBids().size() - 1);
         }
-        //TODO CHECK IF OPP > ME
         Bid ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(this.numFirstBids, this.numLastBids, this.utilityLowerBound, oppMaxbid);
+        while(!oppSimilarityMap.isCompromised(ourOffer, this.oppNumFirstBids, this.utilityLowerBound)){
+            ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(this.numFirstBids, this.numLastBids, this.utilityLowerBound, oppMaxbid);
+        }
         offeredOffers.put(ourOffer, "Fantasy"); // TODO RM
         reporter.log(Level.INFO, "partyId: " + partyId);
         return new Offer(partyId, ourOffer);
