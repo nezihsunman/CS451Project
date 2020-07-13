@@ -181,31 +181,13 @@ public class Group3 extends DefaultParty {
     }
 
     private Action makeAnOffer() throws IOException {
-        /*Bid ourOffer = null;
-        double bidImportanceLowerBound = utilityLowerBound;
-        while (true) {
-            for (int i = 0; i < allPossibleBidsSize.intValue(); i++) {
-                Bid testBid = randomBidGenerator();
-                if (ourSimilarityMap.isCompatibleWithSimilarity(testBid, numFirstBids, numLastBids, bidImportanceLowerBound, "OFFER")) { //TODO RM OFFER
-                    ourOffer = testBid;
-                    break;
-                    if(lastReceivedBid == null) break;
-                    if (estimatedUtilityValue(testBid, true) < estimatedUtilityValue(testBid, false)) {
-                        if (time > 0.8) {
-                            if (this.utilityLowerBound - 0.2 < estimatedUtilityValue(testBid, true)) {
-                                break;
-                            }
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            }
-            if (ourOffer != null) break;
-            bidImportanceLowerBound -= 0.04;
-        }*/
         reporter.log(Level.INFO, "<AhBuNe>: numLastBids: " + this.numLastBids);
-        Bid ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(this.numFirstBids, this.numLastBids, this.utilityLowerBound);
+        Bid oppMaxbid = null;
+        if(oppLinearPartialOrdering.getBids().size() != 0){
+         oppMaxbid = oppLinearPartialOrdering.getBids().get(oppLinearPartialOrdering.getBids().size() - 1);
+        }
+        //TODO CHECK IF OPP > ME
+        Bid ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(this.numFirstBids, this.numLastBids, this.utilityLowerBound, oppMaxbid);
         offeredOffers.put(ourOffer, "Fantasy"); // TODO RM
         return new Offer(partyId, ourOffer);
     }
@@ -252,9 +234,9 @@ public class Group3 extends DefaultParty {
     public double estimatedUtilityValue(Bid bid, boolean isOpponent) {
         int knownBidNum = this.ourLinearPartialOrdering.getBids().size();
         int oppKnownBidNum = this.oppLinearPartialOrdering.getBids().size();
-        // TODO 2 Check
+        // TODO 5 Check
         double estimatedUtilityValue = 0.0;
-        for (int i = 0; i <= 100; i += 2) {
+        for (int i = 50; i <= 100; i += 5) {
             double utilityTest = (double) i / 100;
             int numFirstBids = getNumFirst(utilityTest, knownBidNum);
             int numLastBids = getNumLast(utilityTest, getUtilityLowerBound(1.0, this.lostElicitScore.doubleValue()), knownBidNum);

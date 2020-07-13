@@ -152,7 +152,7 @@ public class SimilarityMap {
 		return false;
 	}
 
-	public Bid findBidCompatibleWithSimilarity(int numFirstBids, int numLastBids, double minUtility){
+	public Bid findBidCompatibleWithSimilarity(int numFirstBids, int numLastBids, double minUtility, Bid oppMaxbid){
 		reporter.log(Level.INFO, "<AhBuNe>: Trying to find bid to offer");
 		createConditionLists(numFirstBids, numLastBids);
 		reporter.log(Level.INFO, "<AhBuNe>: Condition Lists Created");
@@ -194,31 +194,44 @@ public class SimilarityMap {
 				List<Value> availableIssueValueList = availableValues.get(issue);
 				List<Value> forbiddenIssueValueList = forbiddenValues.get(issue);
 				List<IssueValueUnit> allIssueValues = issueValueImpMap.get(issue);
+				reporter.log(Level.INFO, "<AhBuNe>: allIssueValues.size(): " + allIssueValues.size());
 
+				Value randomIssueValue;
 				int randIssueValueIndex = random.nextInt(allIssueValues.size());
-				Value randomIssueValue = allIssueValues.get(randIssueValueIndex).valueOfIssue;
+				if (oppMaxbid != null){
+					randomIssueValue = oppMaxbid.getValue(issue);
+				}
+				else{
+					randomIssueValue = allIssueValues.get(randIssueValueIndex).valueOfIssue;
+				}
 				if(allAvailablesForbidden == false){
-					while(!forbiddenIssueValueList.contains(randomIssueValue)){
+					while(forbiddenIssueValueList.contains(randomIssueValue)){
 						reporter.log(Level.INFO, "<AhBuNe>: ForbiddenList: " + forbiddenIssueValueList);
 						reporter.log(Level.INFO, "<AhBuNe>: Available List: " + availableIssueValueList);
 						randIssueValueIndex = random.nextInt(allIssueValues.size());
 						randomIssueValue = allIssueValues.get(randIssueValueIndex).valueOfIssue;
 					}
-					reporter.log(Level.INFO, "<AhBuNe>: EXIT WHILE: ");
+					reporter.log(Level.INFO, "<AhBuNe>: SELECTED VALUE: "+ randomIssueValue);
 				}
 
 				boolean selectValue = false;
+				reporter.log(Level.INFO, "<AhBuNe>: bestIssueStartIndex: " + bestIssueStartIndex + " randIssue: " + randIssue + " changeRestWorst: " + changeRestWorst);
 
 				if(!availableIssueValueList.contains(randomIssueValue)){
+					reporter.log(Level.INFO, "<AhBuNe>: not available ");
 					if(notAvailableChance != 0){
+						reporter.log(Level.INFO, "<AhBuNe>: not available chance is used");
 						changeRestWorst --;
 						changeRestBest --;
 						selectValue = true;
 					}
 				}
-				else if(randIssue < bestIssueStartIndex && changeRestWorst != 0){
-					changeRestWorst--;
-					selectValue = true;
+				else if(randIssue < bestIssueStartIndex){
+					reporter.log(Level.INFO, "<AhBuNe>: randIssue < bestIssueStartIndex ");
+					if(changeRestWorst != 0){
+						changeRestWorst--;
+						selectValue = true;
+					}
 				}
 				else if(changeRestBest != 0){
 					changeRestBest--;
