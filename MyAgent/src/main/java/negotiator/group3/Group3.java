@@ -271,7 +271,7 @@ public class Group3 extends DefaultParty {
     }
 
     double getUtilityLowerBound(double time, double lostElicitScore) {
-        return ((-pow(time / 2, 2) + /*0.95*/ 0.90) + lostElicitScore);
+        return ((-pow(time / 2, 2) + 0.95) + lostElicitScore);
     }
 
     int getNumFirst(double utilityLowerBound, int knownBidNum) {
