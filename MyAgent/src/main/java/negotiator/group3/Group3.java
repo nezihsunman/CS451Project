@@ -141,7 +141,7 @@ public class Group3 extends DefaultParty {
 
     }
 
-    private Action selectAction() throws IOException {
+    private Action selectAction() {
         //getReporter().log(Level.INFO, "<AhBuNe>: Entering Strategy selection");
         //getReporter().log(Level.INFO, "<AhBuNe>: Strategy selected");
         if (doWeMakeElicitation()) {
@@ -274,6 +274,7 @@ public class Group3 extends DefaultParty {
             return true;
         }
         else if(time > 0.98 && oppLinearPartialOrdering.isAvailable()){
+            reporter.log(Level.INFO, "OPP ELICIT: ");
             if(mostCompromisedBids.size() > 0){
                 elicitationBid = mostCompromisedBids.remove(mostCompromisedBids.size()-1).getKey();
                 oppElicitatedBid.add(elicitationBid);
@@ -310,8 +311,11 @@ public class Group3 extends DefaultParty {
             //getReporter().log(Level.INFO, "AAAAAAAAAAAAsssss" + elicitationCost + "Elicit number" + leftElicitationNumber);
             leftElicitationNumber = (int) (maxElicitationLost.doubleValue() / elicitationCost);
             //getReporter().log(Level.INFO, "sssss" + elicitationCost + "Elicit number" + leftElicitationNumber);
+            reporter.log(Level.INFO, "leftElicitationNumber: "+ leftElicitationNumber);
         } catch (Exception e) {
             elicitationCost = 0.01;
+            leftElicitationNumber = (int) (maxElicitationLost.doubleValue() / elicitationCost);
+            reporter.log(Level.INFO, "catch leftElicitationNumber: "+ leftElicitationNumber);
         }
     }
 
