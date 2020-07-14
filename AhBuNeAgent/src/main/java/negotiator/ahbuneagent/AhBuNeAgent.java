@@ -198,10 +198,10 @@ public class AhBuNeAgent extends DefaultParty {
     private Action makeAnOffer() {
         getReporter().log(Level.INFO, "<AhBuNe>: MakeAnOffer()");
         //reporter.log(Level.INFO, "<AhBuNe>: numLastBids: " + this.numLastBids);
-        if(time > 0.96){
-            for(int i = ourLinearPartialOrdering.getKnownBidsSize()-1; i >= 0; i--){
+        if (time > 0.96) {
+            for (int i = ourLinearPartialOrdering.getKnownBidsSize() - 1; i >= 0; i--) {
                 Bid testBid = ourLinearPartialOrdering.getBidByIndex(i);
-                if(oppElicitatedBid.contains(testBid) && doWeAccept(testBid)){
+                if (oppElicitatedBid.contains(testBid) && doWeAccept(testBid)) {
                     reporter.log(Level.INFO, "IMKANSIZI BASARDIK");
                     return new Offer(partyId, testBid);
                 }
@@ -209,17 +209,33 @@ public class AhBuNeAgent extends DefaultParty {
         }
         Bid oppMaxBid = oppLinearPartialOrdering.getMaxBid();
         Bid ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, utilityLowerBound, oppMaxBid);
-        if(lastReceivedBid != null){
-            if(ourSimilarityMap.isCompatibleWithSimilarity(lastReceivedBid, ourNumFirstBids, ourNumLastBids, 0.9)){
+        if (time < 0.01) {
+            if (oppLinearPartialOrdering.isAvailable()) {
+                int count = 0;
+                while (count < 500 && !oppSimilarityMap.isCompromised(ourOffer, oppNumFirstBids, utilityLowerBound) && ourOffer != ourLinearPartialOrdering.getMaxBid()) {
+                    ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, utilityLowerBound, oppMaxBid);
+                    count++;
+                }
+            } else {
+                int count = 0;
+                while (count < 500 && ourOffer != ourLinearPartialOrdering.getMaxBid()) {
+                    ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, utilityLowerBound, oppMaxBid);
+                    count++;
+                }
+            }
+        } else if (lastReceivedBid != null) {
+            if (ourSimilarityMap.isCompatibleWithSimilarity(lastReceivedBid, ourNumFirstBids, ourNumLastBids, 0.9)) {
                 return new Offer(partyId, lastReceivedBid);
             }
-            if(ourSimilarityMap.isCompatibleWithSimilarity(oppMaxBid, ourNumFirstBids, ourNumLastBids, 0.9)){
+            if (ourSimilarityMap.isCompatibleWithSimilarity(oppMaxBid, ourNumFirstBids, ourNumLastBids, 0.9)) {
                 return new Offer(partyId, oppMaxBid);
             }
-            while(oppLinearPartialOrdering.isAvailable() && !oppSimilarityMap.isCompromised(ourOffer, oppNumFirstBids, utilityLowerBound)){
+            int count = 0;
+            while (count < 500 && oppLinearPartialOrdering.isAvailable() && !oppSimilarityMap.isCompromised(ourOffer, oppNumFirstBids, utilityLowerBound)) {
                 // getReporter().log(Level.INFO, "<AhBuNe>: utilityLowerBound: "+utilityLowerBound+ " this.oppNumFirstBids: "+ oppNumFirstBids+"  Finding offer that opp compromises -- OPP MAX BID: " + oppMaxbid + " Our Max Bid: " + this.ourLinearPartialOrdering.getBids().get(ourLinearPartialOrdering.getBids().size()-1));
                 ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, utilityLowerBound, oppMaxBid);
             }
+            reporter.log(Level.INFO, "Count: " + count);
         }
         offeredOffers.put(ourOffer, "Fantasy"); // TODO RM
         reporter.log(Level.INFO, "partyId: " + partyId);
@@ -229,20 +245,20 @@ public class AhBuNeAgent extends DefaultParty {
 
 
     private boolean doWeAccept(Bid bid) {
-        if(ourSimilarityMap.isCompatibleWithSimilarity(bid, ourNumFirstBids, ourNumLastBids, 0.9)){
+        if (ourSimilarityMap.isCompatibleWithSimilarity(bid, ourNumFirstBids, ourNumLastBids, 0.9)) {
             return true;
         }
 
         double startUtilitySearch = utilityLowerBound;
 
-        if(time >= 0.98){
+        if (time >= 0.98) {
             startUtilitySearch = utilityLowerBound - ourMaxCompromise;
         }
 
         getReporter().log(Level.INFO, "TIME: " + time);
 
-        if(oppLinearPartialOrdering.isAvailable()){
-            for (int i = (int)(startUtilitySearch*100); i <= 95; i += 5) {
+        if (oppLinearPartialOrdering.isAvailable()) {
+            for (int i = (int) (startUtilitySearch * 100); i <= 95; i += 5) {
                 double utilityTest = (double) i / 100.0;
                 if (oppSimilarityMap.isCompromised(bid, oppNumFirstBids, utilityTest)) {
                     //getReporter().log(Level.INFO, "HEYO offer has OPP utility: " + utilityTest);
@@ -272,18 +288,17 @@ public class AhBuNeAgent extends DefaultParty {
             //reporter.log(Level.INFO, "<AhBuNe>: ELICITATE allBidsSize > 100");
             elicitationBid = elicitationRandomBidGenerator();
             return true;
-        }
-        else if(time > 0.98 && oppLinearPartialOrdering.isAvailable()){
+        } else if (time > 0.98 && oppLinearPartialOrdering.isAvailable()) {
             reporter.log(Level.INFO, "OPP ELICIT: ");
-            if(mostCompromisedBids.size() > 0){
-                elicitationBid = mostCompromisedBids.remove(mostCompromisedBids.size()-1).getKey();
+            if (mostCompromisedBids.size() > 0) {
+                elicitationBid = mostCompromisedBids.remove(mostCompromisedBids.size() - 1).getKey();
                 oppElicitatedBid.add(elicitationBid);
                 return true;
-            }else {
-                LinkedHashMap<Bid,Integer> mostCompromisedBidsHash = oppSimilarityMap.mostCompromisedBids();
+            } else {
+                LinkedHashMap<Bid, Integer> mostCompromisedBidsHash = oppSimilarityMap.mostCompromisedBids();
                 Set<Map.Entry<Bid, Integer>> sortedCompromiseMapSet = mostCompromisedBidsHash.entrySet();
                 mostCompromisedBids = new ArrayList<>(sortedCompromiseMapSet);
-                this.elicitationBid = this.mostCompromisedBids.remove(this.mostCompromisedBids.size()-1).getKey();
+                this.elicitationBid = this.mostCompromisedBids.remove(this.mostCompromisedBids.size() - 1).getKey();
                 oppElicitatedBid.add(elicitationBid);
                 return true;
             }
@@ -311,11 +326,11 @@ public class AhBuNeAgent extends DefaultParty {
             //getReporter().log(Level.INFO, "AAAAAAAAAAAAsssss" + elicitationCost + "Elicit number" + leftElicitationNumber);
             leftElicitationNumber = (int) (maxElicitationLost.doubleValue() / elicitationCost);
             //getReporter().log(Level.INFO, "sssss" + elicitationCost + "Elicit number" + leftElicitationNumber);
-            reporter.log(Level.INFO, "leftElicitationNumber: "+ leftElicitationNumber);
+            reporter.log(Level.INFO, "leftElicitationNumber: " + leftElicitationNumber);
         } catch (Exception e) {
             elicitationCost = 0.01;
             leftElicitationNumber = (int) (maxElicitationLost.doubleValue() / elicitationCost);
-            reporter.log(Level.INFO, "catch leftElicitationNumber: "+ leftElicitationNumber);
+            reporter.log(Level.INFO, "catch leftElicitationNumber: " + leftElicitationNumber);
         }
     }
 
@@ -328,7 +343,16 @@ public class AhBuNeAgent extends DefaultParty {
     }
 
     double getUtilityLowerBound(double time, double lostElicitScore) {
-        return ((-pow((1.6 * (time - 0.5)) / 2, 2) + 0.85) + lostElicitScore);
+        if (time < 0.5) {
+            reporter.log(Level.INFO, "lowerbound: " + (-pow((time - 0.25), 2) + 0.9 + lostElicitScore));
+            return -pow((time - 0.25), 2) + 0.9 + lostElicitScore;
+        } else if (time < 0.7) {
+            reporter.log(Level.INFO, "lowerbound: " + (-pow((1.5 * (time - 0.7)), 2) + 0.9 + lostElicitScore));
+            return -pow((1.5 * (time - 0.7)), 2) + 0.9 + lostElicitScore;
+        }
+        reporter.log(Level.INFO, "lowerbound: " + ((3.25 * time * time )- (6.155 * time) + 3.6105 + lostElicitScore));
+        return (3.25 * time * time) - (6.155 * time) + 3.6105 + lostElicitScore;
+
     }
 
     int getNumFirst(double utilityLowerBound, int knownBidNum) {

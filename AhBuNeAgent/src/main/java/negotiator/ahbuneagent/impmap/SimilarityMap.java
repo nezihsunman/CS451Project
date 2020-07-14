@@ -165,7 +165,7 @@ public class SimilarityMap {
 				List<IssueValueUnit> allIssueValues = issueValueImpMap.get(issue);
 				Value randomIssueValue;
 				int randIssueValueIndex = random.nextInt(allIssueValues.size());
-				if (selectOppValueCount < 1000 && oppMaxbid != null){
+				if (selectOppValueCount < 500 && oppMaxbid != null){
 					randomIssueValue = oppMaxbid.getValue(issue);
 					selectOppValueCount++;
 				}

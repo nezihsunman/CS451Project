@@ -34,7 +34,7 @@ public class OppSimpleLinearOrdering {
     }
 
     public boolean isAvailable(){
-        if(bids.size() < 4){
+        if(bids.size() < 6){
             return false;
         }
         return true;
