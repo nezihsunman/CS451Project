@@ -177,6 +177,9 @@ public class AgentGG extends DefaultParty {
 				- this.MIN_IMPORTANCE)
 				/ (this.MAX_IMPORTANCE - this.MIN_IMPORTANCE);
 
+		getReporter().log(Level.INFO,
+				"\nAGENT GG - Bid importance: " + impRatioForMe);
+
 		// Accept the terms of the offer, which is higher than my threshold
 		if (impRatioForMe >= this.offerLowerRatio) {
 			getReporter().log(Level.INFO, "\n\naccepted agent: Agent" + me);

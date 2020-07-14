@@ -6,8 +6,8 @@
 
     <groupId>geniusweb.sampleagent</groupId>
     <!-- TODO Update below if you change your project name!! -->
-    <artifactId>AhNeCeAgent</artifactId>
-    <version>1.4.0</version>
+    <artifactId>AhBuNeAgent</artifactId>
+    <version>1.4.2</version>
     <packaging>jar</packaging>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -16,7 +16,7 @@
         <basedir>.</basedir>
         <jackson-2-version>2.9.6</jackson-2-version>
         <!-- TODO Update below if you change your agent name!! -->
-        <main-class-path>negotiator.group3.Group3</main-class-path>
+        <main-class-path>negotiator.group3.AhBuNeAgent</main-class-path>
     </properties>
 
     <distributionManagement>
@@ -30,17 +30,17 @@
         <dependency>
             <groupId>geniusweb</groupId>
             <artifactId>party</artifactId>
-            <version>1.4.0</version>
+            <version>1.4.2</version>
         </dependency>
         <dependency>
             <groupId>geniusweb</groupId>
             <artifactId>bidspace</artifactId>
-            <version>1.4.0</version>
+            <version>1.4.2</version>
         </dependency>
         <dependency>
             <groupId>geniusweb</groupId>
             <artifactId>profileconnection</artifactId>
-            <version>1.4.0</version>
+            <version>1.4.2</version>
         </dependency>
         <dependency>
             <groupId>tudelft.utilities</groupId>
