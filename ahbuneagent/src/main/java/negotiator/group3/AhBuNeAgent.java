@@ -27,7 +27,7 @@ import java.util.logging.Level;
 
 import static java.lang.Math.*;
 
-public class AhNeBuAgent extends DefaultParty {
+public class AhBuNeAgent extends DefaultParty {
 
     private final Random random = new Random();
 
@@ -69,10 +69,10 @@ public class AhNeBuAgent extends DefaultParty {
     /*DEBUG*/
     private HashMap<Bid, String> offeredOffers = new HashMap<>(); //TODO REMOVE AFTER TESTS
 
-    public AhNeBuAgent() {
+    public AhBuNeAgent() {
     }
 
-    public AhNeBuAgent(Reporter reporter) {
+    public AhBuNeAgent(Reporter reporter) {
         super(reporter); // for debugging
     }
 

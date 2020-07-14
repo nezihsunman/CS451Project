@@ -6,7 +6,7 @@
 
     <groupId>geniusweb.sampleagent</groupId>
     <!-- TODO Update below if you change your project name!! -->
-    <artifactId>AhNeBuAgent</artifactId>
+    <artifactId>AhBuNeAgent</artifactId>
     <version>1.4.2</version>
     <packaging>jar</packaging>
     <properties>
@@ -16,7 +16,7 @@
         <basedir>.</basedir>
         <jackson-2-version>2.9.6</jackson-2-version>
         <!-- TODO Update below if you change your agent name!! -->
-        <main-class-path>negotiator.group3.AhNeBuAgent</main-class-path>
+        <main-class-path>negotiator.group3.AhBuNeAgent</main-class-path>
     </properties>
 
     <distributionManagement>
