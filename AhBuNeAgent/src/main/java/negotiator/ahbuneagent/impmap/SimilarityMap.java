@@ -1,6 +1,5 @@
 package negotiator.ahbuneagent.impmap;
 
-import geniusweb.bidspace.AllBidsList;
 import geniusweb.issuevalue.Bid;
 import geniusweb.issuevalue.Domain;
 import geniusweb.issuevalue.Value;

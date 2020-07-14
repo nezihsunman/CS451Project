@@ -51,7 +51,7 @@ public class AhBuNeAgent extends DefaultParty {
     private OppSimilarityMap oppSimilarityMap = null;
 
     private Bid lastReceivedBid = null;
-    private double utilityLowerBound = 0.9; // TODO Check Acceptance Lower Bound Graph
+    private double utilityLowerBound = 1.0;
     private final double ourMaxCompromise = 0.1;
 
     // Initially no loss
@@ -63,17 +63,13 @@ public class AhBuNeAgent extends DefaultParty {
     Bid elicitationBid = null;
     ArrayList<Map.Entry<Bid, Integer>> mostCompromisedBids = new ArrayList<>();
     ArrayList<Bid> oppElicitatedBid = new ArrayList<>();
-    // If no reservation ratio is assigned by the system then it is equal to 0 by default
     private Bid reservationBid = null;
-
-    /*DEBUG*/
-    private HashMap<Bid, String> offeredOffers = new HashMap<>(); //TODO REMOVE AFTER TESTS
 
     public AhBuNeAgent() {
     }
 
     public AhBuNeAgent(Reporter reporter) {
-        super(reporter); // for debugging
+        super(reporter);
     }
 
     @Override
@@ -84,7 +80,7 @@ public class AhBuNeAgent extends DefaultParty {
     @Override
     public String getDescription() {
         return "AhBuNe Agent";
-    } //TODO Change in POM
+    }
 
     @Override
     public void notifyChange(Inform info) {
@@ -92,25 +88,20 @@ public class AhBuNeAgent extends DefaultParty {
             if (info instanceof Settings) {
                 Settings settings = (Settings) info;
                 init(settings);
-                //getReporter().log(Level.INFO, "<AhBuNe>: " + "init");
             } else if (info instanceof ActionDone) {
                 Action lastReceivedAction = ((ActionDone) info).getAction();
                 if (lastReceivedAction instanceof Offer) {
-                    getReporter().log(Level.INFO, "<AhBuNe>: " + " Offer Came:" + ((Offer) lastReceivedAction).getBid()); //TODO REMOVE
                     lastReceivedBid = ((Offer) lastReceivedAction).getBid();
                 } else if (lastReceivedAction instanceof Comparison) {
                     ourLinearPartialOrdering = ourLinearPartialOrdering.with(((Comparison) lastReceivedAction).getBid(), ((Comparison) lastReceivedAction).getWorse());
                     myTurn();
-                    getReporter().log(Level.INFO, "<AhBuNe>: " + "KNOWN BIDS: " + ourLinearPartialOrdering.getBids().size());
                 }
             } else if (info instanceof YourTurn) {
                 if (progress instanceof ProgressRounds) {
                     progress = ((ProgressRounds) progress).advance();
                 }
-                getReporter().log(Level.INFO, "<AhBuNe>: " + progress);
                 myTurn();
             } else if (info instanceof Finished) {
-                getReporter().log(Level.INFO, "<AhBuNe>: " + " Offered Offers: " + offeredOffers); //TODO REMOVE
             }
         } catch (Exception exception) {
             throw new RuntimeException("Failed to handle info", exception);
@@ -128,8 +119,8 @@ public class AhBuNeAgent extends DefaultParty {
             PartialOrdering partialProfile = (PartialOrdering) profileInterface.getProfile();
             this.allPossibleBids = new AllBidsList(partialProfile.getDomain());
             this.allPossibleBidsSize = allPossibleBids.size();
-            this.ourSimilarityMap = new SimilarityMap(partialProfile); //TODO REMOVE REPORTER
-            this.oppSimilarityMap = new OppSimilarityMap(partialProfile); //TODO REMOVE REPORTER
+            this.ourSimilarityMap = new SimilarityMap(partialProfile);
+            this.oppSimilarityMap = new OppSimilarityMap(partialProfile);
             this.ourLinearPartialOrdering = new SimpleLinearOrdering(profileInterface.getProfile());
             this.oppLinearPartialOrdering = new OppSimpleLinearOrdering();
             this.ourSimilarityMap.update(ourLinearPartialOrdering);
@@ -142,8 +133,6 @@ public class AhBuNeAgent extends DefaultParty {
     }
 
     private Action selectAction() {
-        //getReporter().log(Level.INFO, "<AhBuNe>: Entering Strategy selection");
-        //getReporter().log(Level.INFO, "<AhBuNe>: Strategy selected");
         if (doWeMakeElicitation()) {
             lostElicitScore += elicitationCost;
             leftElicitationNumber -= 1;
@@ -151,10 +140,8 @@ public class AhBuNeAgent extends DefaultParty {
         }
 
         if (lastReceivedBid == null) {
-            getReporter().log(Level.INFO, "<AhBuNe>: Selecting first offer");
             return makeAnOffer();
         }
-        //if not Accepted return null
         if (doWeEndTheNegotiation()) {
             return new EndNegotiation(partyId);
         } else if (doWeAccept(lastReceivedBid)) {
@@ -168,25 +155,16 @@ public class AhBuNeAgent extends DefaultParty {
         time = progress.get(System.currentTimeMillis());
         strategySelection();
         Action action = selectAction();
-        getReporter().log(Level.INFO, "<AhBuNe>: Action Selected: " + action);
         getConnection().send(action);
     }
 
     private boolean doWeEndTheNegotiation() {
-        //TODO check
         if (reservationBid != null && ourSimilarityMap.isCompatibleWithSimilarity(reservationBid, ourNumFirstBids, ourNumLastBids, 0.9 - time * 0.1)) {
-            /* getReporter().log(Level.INFO, "---" + me + " Negotiation is ended with the method doWeNeedNegotiation");*/
             return true;
         }
         return false;
     }
 
-    //TODO RM
-    private Bid randomBidGenerator() {
-        return allPossibleBids.get(random.nextInt(allPossibleBids.size().intValue()));
-    }
-
-    //TODO elicitate opp max bid
     private Bid elicitationRandomBidGenerator() {
         Bid foundBid = allPossibleBids.get(random.nextInt(allPossibleBids.size().intValue()));
         while (ourLinearPartialOrdering.getBids().contains(foundBid)) {
@@ -196,13 +174,10 @@ public class AhBuNeAgent extends DefaultParty {
     }
 
     private Action makeAnOffer() {
-        getReporter().log(Level.INFO, "<AhBuNe>: MakeAnOffer()");
-        //reporter.log(Level.INFO, "<AhBuNe>: numLastBids: " + this.numLastBids);
         if (time > 0.96) {
             for (int i = ourLinearPartialOrdering.getKnownBidsSize() - 1; i >= 0; i--) {
                 Bid testBid = ourLinearPartialOrdering.getBidByIndex(i);
                 if (oppElicitatedBid.contains(testBid) && doWeAccept(testBid)) {
-                    reporter.log(Level.INFO, "IMKANSIZI BASARDIK");
                     return new Offer(partyId, testBid);
                 }
             }
@@ -232,14 +207,9 @@ public class AhBuNeAgent extends DefaultParty {
             }
             int count = 0;
             while (count < 500 && oppLinearPartialOrdering.isAvailable() && !oppSimilarityMap.isCompromised(ourOffer, oppNumFirstBids, utilityLowerBound)) {
-                // getReporter().log(Level.INFO, "<AhBuNe>: utilityLowerBound: "+utilityLowerBound+ " this.oppNumFirstBids: "+ oppNumFirstBids+"  Finding offer that opp compromises -- OPP MAX BID: " + oppMaxbid + " Our Max Bid: " + this.ourLinearPartialOrdering.getBids().get(ourLinearPartialOrdering.getBids().size()-1));
                 ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, utilityLowerBound, oppMaxBid);
             }
-            reporter.log(Level.INFO, "Count: " + count);
         }
-        offeredOffers.put(ourOffer, "Fantasy"); // TODO RM
-        reporter.log(Level.INFO, "partyId: " + partyId);
-        getReporter().log(Level.INFO, "<AhBuNe>: Offer Found: " + ourOffer);
         return new Offer(partyId, ourOffer);
     }
 
@@ -255,15 +225,11 @@ public class AhBuNeAgent extends DefaultParty {
             startUtilitySearch = utilityLowerBound - ourMaxCompromise;
         }
 
-        getReporter().log(Level.INFO, "TIME: " + time);
-
         if (oppLinearPartialOrdering.isAvailable()) {
             for (int i = (int) (startUtilitySearch * 100); i <= 95; i += 5) {
                 double utilityTest = (double) i / 100.0;
                 if (oppSimilarityMap.isCompromised(bid, oppNumFirstBids, utilityTest)) {
-                    //getReporter().log(Level.INFO, "HEYO offer has OPP utility: " + utilityTest);
                     if (ourSimilarityMap.isCompatibleWithSimilarity(bid, ourNumFirstBids, ourNumLastBids, utilityTest)) {
-                        //getReporter().log(Level.INFO, "HEYO I accept the offer for, MY utility: " + utilityTest);
                         return true;
                     }
                     break;
@@ -275,21 +241,17 @@ public class AhBuNeAgent extends DefaultParty {
 
     private boolean doWeMakeElicitation() {
         if (leftElicitationNumber == 0) {
-            //reporter.log(Level.INFO, "<AhBuNe>: NO ELICITATION");
             return false;
         }
         if (allPossibleBidsSize.intValue() <= 100) {
-            //reporter.log(Level.INFO, "<AhBuNe>: ELICITATE allBidsSize < 100");
             if (ourLinearPartialOrdering.getKnownBidsSize() < allPossibleBidsSize.intValue() * 0.1) {
                 elicitationBid = elicitationRandomBidGenerator();
                 return true;
             }
         } else if (ourLinearPartialOrdering.getKnownBidsSize() < 10) {
-            //reporter.log(Level.INFO, "<AhBuNe>: ELICITATE allBidsSize > 100");
             elicitationBid = elicitationRandomBidGenerator();
             return true;
         } else if (time > 0.98 && oppLinearPartialOrdering.isAvailable()) {
-            reporter.log(Level.INFO, "OPP ELICIT: ");
             if (mostCompromisedBids.size() > 0) {
                 elicitationBid = mostCompromisedBids.remove(mostCompromisedBids.size() - 1).getKey();
                 oppElicitatedBid.add(elicitationBid);
@@ -298,11 +260,10 @@ public class AhBuNeAgent extends DefaultParty {
                 LinkedHashMap<Bid, Integer> mostCompromisedBidsHash = oppSimilarityMap.mostCompromisedBids();
                 Set<Map.Entry<Bid, Integer>> sortedCompromiseMapSet = mostCompromisedBidsHash.entrySet();
                 mostCompromisedBids = new ArrayList<>(sortedCompromiseMapSet);
-                this.elicitationBid = this.mostCompromisedBids.remove(this.mostCompromisedBids.size() - 1).getKey();
+                elicitationBid = mostCompromisedBids.remove(mostCompromisedBids.size() - 1).getKey();
                 oppElicitatedBid.add(elicitationBid);
                 return true;
             }
-
         }
         return false;
     }
@@ -323,9 +284,7 @@ public class AhBuNeAgent extends DefaultParty {
     private void getElicitationCost(Settings settings) {
         try {
             elicitationCost = Double.parseDouble(settings.getParameters().get("elicitationcost").toString());
-            //getReporter().log(Level.INFO, "AAAAAAAAAAAAsssss" + elicitationCost + "Elicit number" + leftElicitationNumber);
             leftElicitationNumber = (int) (maxElicitationLost.doubleValue() / elicitationCost);
-            //getReporter().log(Level.INFO, "sssss" + elicitationCost + "Elicit number" + leftElicitationNumber);
             reporter.log(Level.INFO, "leftElicitationNumber: " + leftElicitationNumber);
         } catch (Exception e) {
             elicitationCost = 0.01;
@@ -344,15 +303,11 @@ public class AhBuNeAgent extends DefaultParty {
 
     double getUtilityLowerBound(double time, double lostElicitScore) {
         if (time < 0.5) {
-            reporter.log(Level.INFO, "lowerbound: " + (-pow((time - 0.25), 2) + 0.9 + lostElicitScore));
             return -pow((time - 0.25), 2) + 0.9 + lostElicitScore;
         } else if (time < 0.7) {
-            reporter.log(Level.INFO, "lowerbound: " + (-pow((1.5 * (time - 0.7)), 2) + 0.9 + lostElicitScore));
             return -pow((1.5 * (time - 0.7)), 2) + 0.9 + lostElicitScore;
         }
-        reporter.log(Level.INFO, "lowerbound: " + ((3.25 * time * time )- (6.155 * time) + 3.6105 + lostElicitScore));
         return (3.25 * time * time) - (6.155 * time) + 3.6105 + lostElicitScore;
-
     }
 
     int getNumFirst(double utilityLowerBound, int knownBidNum) {
