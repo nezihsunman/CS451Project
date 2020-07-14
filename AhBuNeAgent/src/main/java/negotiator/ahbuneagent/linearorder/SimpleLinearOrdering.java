@@ -1,4 +1,4 @@
-package negotiator.group3.linearorder;
+package negotiator.ahbuneagent.linearorder;
 
 import geniusweb.issuevalue.Bid;
 import geniusweb.issuevalue.Domain;
@@ -7,7 +7,6 @@ import geniusweb.profile.Profile;
 import geniusweb.profile.utilityspace.UtilitySpace;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,18 +26,21 @@ public class SimpleLinearOrdering implements UtilitySpace {
         this.domain = domain;
         this.bids = bids;
     }
+
     public Bid getMinBid(){
         if(bids.size() > 0){
             return bids.get(0);
         }
         return null;
     }
+
     public Bid getMaxBid(){
         if(bids.size() > 0){
             return bids.get(bids.size() - 1);
         }
         return null;
     }
+
     public Bid getBidByIndex(int index) {
         if(index < bids.size()){
             return bids.get(index);
@@ -50,7 +52,7 @@ public class SimpleLinearOrdering implements UtilitySpace {
         return bids.size();
     }
 
-    /*a list of bids in the profile sorted from low to high utility.*/
+    //a list of bids in the profile sorted from low to high utility.
     private static List<Bid> getSortedBids(Profile profile) {
         if (!(profile instanceof DefaultPartialOrdering)) {
             throw new UnsupportedOperationException("Only DefaultPartialOrdering supported");
@@ -86,12 +88,10 @@ public class SimpleLinearOrdering implements UtilitySpace {
         return new BigDecimal(bids.indexOf(bid) + 1);
     }
 
-    /*true iff bid is contained in this ordering*/
     public boolean contains(Bid bid) {
         return bids.contains(bid);
     }
 
-    /*list of all bids in the current ordering.*/
     public List<Bid> getBids() {
         return Collections.unmodifiableList(bids);
     }

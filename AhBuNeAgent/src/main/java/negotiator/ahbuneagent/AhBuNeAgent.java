@@ -1,4 +1,4 @@
-package negotiator.group3;
+package negotiator.ahbuneagent;
 
 import geniusweb.actions.*;
 import geniusweb.bidspace.AllBidsList;
@@ -12,10 +12,10 @@ import geniusweb.profileconnection.ProfileConnectionFactory;
 import geniusweb.profileconnection.ProfileInterface;
 import geniusweb.progress.Progress;
 import geniusweb.progress.ProgressRounds;
-import negotiator.group3.impmap.SimilarityMap;
-import negotiator.group3.impmap.OppSimilarityMap;
-import negotiator.group3.linearorder.OppSimpleLinearOrdering;
-import negotiator.group3.linearorder.SimpleLinearOrdering;
+import negotiator.ahbuneagent.impmap.SimilarityMap;
+import negotiator.ahbuneagent.impmap.OppSimilarityMap;
+import negotiator.ahbuneagent.linearorder.OppSimpleLinearOrdering;
+import negotiator.ahbuneagent.linearorder.SimpleLinearOrdering;
 import tudelft.utilities.logging.Reporter;
 
 import javax.websocket.DeploymentException;
@@ -34,14 +34,14 @@ public class AhBuNeAgent extends DefaultParty {
     private int ourNumFirstBids;
     private int ourNumLastBids;
     private int oppNumFirstBids;
-    int ourKnownBidNum = 0;
-    int oppKnownBidNum = 0;
+    private int ourKnownBidNum = 0;
+    private int oppKnownBidNum = 0;
 
 
     protected ProfileInterface profileInterface;
     private PartyId partyId;
     private Progress progress;
-    double time = 0.0;
+    private double time = 0.0;
 
     private AllBidsList allPossibleBids;
     private BigInteger allPossibleBidsSize;
@@ -128,8 +128,8 @@ public class AhBuNeAgent extends DefaultParty {
             PartialOrdering partialProfile = (PartialOrdering) profileInterface.getProfile();
             this.allPossibleBids = new AllBidsList(partialProfile.getDomain());
             this.allPossibleBidsSize = allPossibleBids.size();
-            this.ourSimilarityMap = new SimilarityMap(partialProfile, getReporter()); //TODO REMOVE REPORTER
-            this.oppSimilarityMap = new OppSimilarityMap(partialProfile, getReporter()); //TODO REMOVE REPORTER
+            this.ourSimilarityMap = new SimilarityMap(partialProfile); //TODO REMOVE REPORTER
+            this.oppSimilarityMap = new OppSimilarityMap(partialProfile); //TODO REMOVE REPORTER
             this.ourLinearPartialOrdering = new SimpleLinearOrdering(profileInterface.getProfile());
             this.oppLinearPartialOrdering = new OppSimpleLinearOrdering();
             this.ourSimilarityMap.update(ourLinearPartialOrdering);
@@ -174,7 +174,7 @@ public class AhBuNeAgent extends DefaultParty {
 
     private boolean doWeEndTheNegotiation() {
         //TODO check
-        if (reservationBid != null && ourSimilarityMap.isCompatibleWithSimilarity(reservationBid, ourNumFirstBids, ourNumLastBids, 0.9 - time * 0.1,"DO WE END")) {
+        if (reservationBid != null && ourSimilarityMap.isCompatibleWithSimilarity(reservationBid, ourNumFirstBids, ourNumLastBids, 0.9 - time * 0.1)) {
             /* getReporter().log(Level.INFO, "---" + me + " Negotiation is ended with the method doWeNeedNegotiation");*/
             return true;
         }
@@ -210,10 +210,10 @@ public class AhBuNeAgent extends DefaultParty {
         Bid oppMaxBid = oppLinearPartialOrdering.getMaxBid();
         Bid ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, utilityLowerBound, oppMaxBid);
         if(lastReceivedBid != null){
-            if(ourSimilarityMap.isCompatibleWithSimilarity(lastReceivedBid, ourNumFirstBids, ourNumLastBids, 0.9, "OFFER")){
+            if(ourSimilarityMap.isCompatibleWithSimilarity(lastReceivedBid, ourNumFirstBids, ourNumLastBids, 0.9)){
                 return new Offer(partyId, lastReceivedBid);
             }
-            if(ourSimilarityMap.isCompatibleWithSimilarity(oppMaxBid, ourNumFirstBids, ourNumLastBids, 0.9, "OFFER")){
+            if(ourSimilarityMap.isCompatibleWithSimilarity(oppMaxBid, ourNumFirstBids, ourNumLastBids, 0.9)){
                 return new Offer(partyId, oppMaxBid);
             }
             while(oppLinearPartialOrdering.isAvailable() && !oppSimilarityMap.isCompromised(ourOffer, oppNumFirstBids, utilityLowerBound)){
@@ -229,7 +229,7 @@ public class AhBuNeAgent extends DefaultParty {
 
 
     private boolean doWeAccept(Bid bid) {
-        if(ourSimilarityMap.isCompatibleWithSimilarity(bid, ourNumFirstBids, ourNumLastBids, 0.9, "ACCEPT")){
+        if(ourSimilarityMap.isCompatibleWithSimilarity(bid, ourNumFirstBids, ourNumLastBids, 0.9)){
             return true;
         }
 
@@ -246,7 +246,7 @@ public class AhBuNeAgent extends DefaultParty {
                 double utilityTest = (double) i / 100.0;
                 if (oppSimilarityMap.isCompromised(bid, oppNumFirstBids, utilityTest)) {
                     //getReporter().log(Level.INFO, "HEYO offer has OPP utility: " + utilityTest);
-                    if (ourSimilarityMap.isCompatibleWithSimilarity(bid, ourNumFirstBids, ourNumLastBids, utilityTest, "ACCEPT")) {
+                    if (ourSimilarityMap.isCompatibleWithSimilarity(bid, ourNumFirstBids, ourNumLastBids, utilityTest)) {
                         //getReporter().log(Level.INFO, "HEYO I accept the offer for, MY utility: " + utilityTest);
                         return true;
                     }

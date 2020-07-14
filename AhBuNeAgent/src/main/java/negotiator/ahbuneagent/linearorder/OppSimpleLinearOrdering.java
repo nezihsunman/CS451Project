@@ -1,4 +1,4 @@
-package negotiator.group3.linearorder;
+package negotiator.ahbuneagent.linearorder;
 
 import geniusweb.issuevalue.Bid;
 
@@ -21,15 +21,18 @@ public class OppSimpleLinearOrdering {
         }
         return new BigDecimal(bids.indexOf(bid) + 1);
     }
+
     public Bid getMaxBid(){
         if(bids.size() > 0){
             return bids.get(bids.size() - 1);
         }
         return null;
     }
+
     public int getKnownBidsSize(){
         return bids.size();
     }
+
     public boolean isAvailable(){
         if(bids.size() < 4){
             return false;
@@ -52,10 +55,10 @@ public class OppSimpleLinearOrdering {
     }
 
     // if a bid is not changing at first, it means it is important for opponent,
-    // bid is going to be conceded after a while thus importance decreases
+    // bids are going to be conceded after a while due to importance decreases
     public void updateBid(Bid bid) {
         if(!contains(bid))
-            //add at the beginning of the array if not offered in past
+            //add the bid at the beginning of the array if not offered before
             this.bids.add(0, bid);
     }
 }
