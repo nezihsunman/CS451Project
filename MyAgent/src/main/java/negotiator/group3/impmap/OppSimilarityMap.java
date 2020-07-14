@@ -72,7 +72,7 @@ public class OppSimilarityMap {
 
         int changedIssue= 0;
 
-        reporter.log( Level.INFO, "OPP ISSUE LIST SIZE: "+ issueList.size());
+        //reporter.log( Level.INFO, "OPP ISSUE LIST SIZE: "+ issueList.size());
 
         for (int i = 0; i < issueList.size(); i++) {
             String issue = issueList.get(i);
@@ -86,7 +86,7 @@ public class OppSimilarityMap {
                 }
             }
         }
-        reporter.log( Level.INFO, "OPP COMPROMISE CHECK: "+ bid + " MAX BID: " + maxImpBid);
+        //reporter.log( Level.INFO, "OPP COMPROMISE CHECK: "+ bid + " MAX BID: " + maxImpBid);
         if(changedIssue <= changeRest){
             return false;
         }
@@ -98,7 +98,7 @@ public class OppSimilarityMap {
 
         this.oppEstimatedProfile = estimatedProfile;
 
-        reporter.log( Level.INFO, " Given Bids:  "+ estimatedProfile.getBids() );
+        //reporter.log( Level.INFO, " Given Bids:  "+ estimatedProfile.getBids() );
 
 
         List<Bid> sortedBids = estimatedProfile.getBids();

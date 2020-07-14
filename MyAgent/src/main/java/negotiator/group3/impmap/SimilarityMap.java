@@ -136,8 +136,8 @@ public class SimilarityMap {
 		int changeRestWorst = (changeRest / 2) + (changeRest % 2);
 
 		if(callType.equals("ACCEPT")){
-			reporter.log( Level.INFO, "CHECKED ACCEPTION Bid: "+ bid + " MAX BID: " + maxImpBid);
-			reporter.log( Level.INFO, "changedIssueBest: "+ changedIssueBest + " changedIssueWorst: "+ changedIssueWorst + " changedNotAvailable: "+ changedNotAvailable);
+			//reporter.log( Level.INFO, "CHECKED ACCEPTION Bid: "+ bid + " MAX BID: " + maxImpBid);
+			//reporter.log( Level.INFO, "changedIssueBest: "+ changedIssueBest + " changedIssueWorst: "+ changedIssueWorst + " changedNotAvailable: "+ changedNotAvailable);
 		}
 
 		changedIssueBest += changedNotAvailable;
@@ -160,8 +160,8 @@ public class SimilarityMap {
 
 		if(changedIssueBest <= changeRestBest && changedIssueWorst <= changeRestWorst){
 			if(callType.equals("OFFER")){
-				reporter.log( Level.INFO, "OFFERED Bid: "+ bid + " MAX BID: " + maxImpBid);
-				reporter.log( Level.INFO, "changedIssueBest: "+ changedIssueBest + " changedIssueWorst: "+ changedIssueWorst + " changedNotAvailable: "+ changedNotAvailable);
+				//reporter.log( Level.INFO, "OFFERED Bid: "+ bid + " MAX BID: " + maxImpBid);
+				//reporter.log( Level.INFO, "changedIssueBest: "+ changedIssueBest + " changedIssueWorst: "+ changedIssueWorst + " changedNotAvailable: "+ changedNotAvailable);
 			}
 			return true;
 		}
@@ -169,9 +169,9 @@ public class SimilarityMap {
 	}
 
 	public Bid findBidCompatibleWithSimilarity(int numFirstBids, int numLastBids, double minUtility, Bid oppMaxbid){
-		reporter.log(Level.INFO, "<AhBuNe>: Trying to find bid to offer");
+		//reporter.log(Level.INFO, "<AhBuNe>: Trying to find bid to offer");
 		createConditionLists(numFirstBids, numLastBids);
-		reporter.log(Level.INFO, "<AhBuNe>: Condition Lists Created");
+		//reporter.log(Level.INFO, "<AhBuNe>: Condition Lists Created");
 
 		double issueChangeLoss = 1.0 / domain.getIssues().size();
 		int changeRest = (int)((1 - minUtility) / issueChangeLoss) + 1;
@@ -191,7 +191,7 @@ public class SimilarityMap {
 			createdBid.put(issue, this.maxImpBid.getValue(issue));
 		}
 
-		reporter.log(Level.INFO, "<AhBuNe>: Initial Values Assigned");
+		//reporter.log(Level.INFO, "<AhBuNe>: Initial Values Assigned");
 		int selectOppValueCount = 0;
 		while(!(changeRestWorst == 0 && changeRestBest == 0)){
 			//reporter.log(Level.INFO, "<AhBuNe>: changeRestWorst: " + changeRestWorst + " changeRestBest: " + changeRestBest);
@@ -228,7 +228,7 @@ public class SimilarityMap {
 						randIssueValueIndex = random.nextInt(allIssueValues.size());
 						randomIssueValue = allIssueValues.get(randIssueValueIndex).valueOfIssue;
 					}
-					reporter.log(Level.INFO, "<AhBuNe>: SELECTED VALUE: "+ randomIssueValue);
+					//reporter.log(Level.INFO, "<AhBuNe>: SELECTED VALUE: "+ randomIssueValue);
 				}
 
 				boolean selectValue = false;
@@ -260,7 +260,8 @@ public class SimilarityMap {
 				}
 			}
 		}
-		reporter.log(Level.INFO, "<AhBuNe>: Offered Bid: " + createdBid);
+		// TODO CHECK THE FAILURE
+		//reporter.log(Level.INFO, "<AhBuNe>: Offered Bid: " + createdBid);
 		return new Bid(createdBid);
 	}
 
@@ -271,7 +272,7 @@ public class SimilarityMap {
 
 		this.estimatedProfile = estimatedProfile;
 
-		reporter.log( Level.INFO, " Given Bids:  "+ estimatedProfile.getBids() );
+		//reporter.log( Level.INFO, " Given Bids:  "+ estimatedProfile.getBids() );
 
 
 		List<Bid> sortedBids = estimatedProfile.getBids();

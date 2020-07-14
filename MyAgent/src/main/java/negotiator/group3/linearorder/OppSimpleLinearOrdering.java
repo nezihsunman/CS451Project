@@ -9,27 +9,32 @@ import java.util.List;
 
 public class OppSimpleLinearOrdering {
 
-    private final List<Bid> bids; // worst bid first, best bid last.
+    private List<Bid> bids; // worst bid first, best bid last.
 
     public OppSimpleLinearOrdering() {
         this.bids = new ArrayList<>();
     }
 
-    public List<Bid> getSortedBids() {
-        return this.bids;
-    }
-
     public BigDecimal getUtility(Bid bid) {
-        /*if (!bidsInOrder.contains(bid)) {
-            return BigDecimal.ZERO;
-        }
-        // (order/size)^2
-        return new BigDecimal(bidsInOrder.indexOf(bid)+1).divide(new BigDecimal((bidsInOrder.size())), 8, RoundingMode.HALF_UP).pow(2);*/
-
         if (!bids.contains(bid)) {
             return BigDecimal.ZERO;
         }
         return new BigDecimal(bids.indexOf(bid) + 1);
+    }
+    public Bid getMaxBid(){
+        if(bids.size() > 0){
+            return bids.get(bids.size() - 1);
+        }
+        return null;
+    }
+    public int getKnownBidsSize(){
+        return bids.size();
+    }
+    public boolean isAvailable(){
+        if(bids.size() < 4){
+            return false;
+        }
+        return true;
     }
 
     public boolean contains(Bid bid) {
@@ -38,6 +43,12 @@ public class OppSimpleLinearOrdering {
 
     public List<Bid> getBids() {
         return Collections.unmodifiableList(bids);
+    }
+    public Bid getBidByIndex(int index) {
+        if(index < bids.size()){
+            return bids.get(index);
+        }
+        return null;
     }
 
     // if a bid is not changing at first, it means it is important for opponent,

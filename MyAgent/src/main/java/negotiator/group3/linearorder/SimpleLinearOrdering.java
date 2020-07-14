@@ -27,6 +27,28 @@ public class SimpleLinearOrdering implements UtilitySpace {
         this.domain = domain;
         this.bids = bids;
     }
+    public Bid getMinBid(){
+        if(bids.size() > 0){
+            return bids.get(0);
+        }
+        return null;
+    }
+    public Bid getMaxBid(){
+        if(bids.size() > 0){
+            return bids.get(bids.size() - 1);
+        }
+        return null;
+    }
+    public Bid getBidByIndex(int index) {
+        if(index < bids.size()){
+            return bids.get(index);
+        }
+        return null;
+    }
+
+    public int getKnownBidsSize(){
+        return bids.size();
+    }
 
     /*a list of bids in the profile sorted from low to high utility.*/
     private static List<Bid> getSortedBids(Profile profile) {
