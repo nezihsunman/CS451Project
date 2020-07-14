@@ -212,14 +212,14 @@ public class AhBuNeAgent extends DefaultParty {
         if (time < 0.015) {
             if (oppLinearPartialOrdering.isAvailable()) {
                 int count = 0;
-                while (count < 500 && !oppSimilarityMap.isCompromised(ourOffer, oppNumFirstBids, 0.8) && ourOffer.equals(ourLinearPartialOrdering.getMaxBid())) {
-                    ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, 0.8, oppMaxBid);
+                while (count < 500 && !oppSimilarityMap.isCompromised(ourOffer, oppNumFirstBids, 0.85) && ourOffer.equals(ourLinearPartialOrdering.getMaxBid())) {
+                    ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, 0.85, oppMaxBid);
                     count++;
                 }
             } else {
                 int count = 0;
                 while (count < 500 && ourOffer.equals(ourLinearPartialOrdering.getMaxBid())) {
-                    ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, 0.8, oppMaxBid);
+                    ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, 0.85, oppMaxBid);
                     count++;
                 }
             }
