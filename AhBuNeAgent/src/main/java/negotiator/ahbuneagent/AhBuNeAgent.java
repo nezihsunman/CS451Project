@@ -209,17 +209,17 @@ public class AhBuNeAgent extends DefaultParty {
         }
         Bid oppMaxBid = oppLinearPartialOrdering.getMaxBid();
         Bid ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, utilityLowerBound, oppMaxBid);
-        if (time < 0.01) {
+        if (time < 0.015) {
             if (oppLinearPartialOrdering.isAvailable()) {
                 int count = 0;
-                while (count < 500 && !oppSimilarityMap.isCompromised(ourOffer, oppNumFirstBids, utilityLowerBound) && ourOffer != ourLinearPartialOrdering.getMaxBid()) {
-                    ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, utilityLowerBound, oppMaxBid);
+                while (count < 500 && !oppSimilarityMap.isCompromised(ourOffer, oppNumFirstBids, 0.8) && ourOffer.equals(ourLinearPartialOrdering.getMaxBid())) {
+                    ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, 0.8, oppMaxBid);
                     count++;
                 }
             } else {
                 int count = 0;
-                while (count < 500 && ourOffer != ourLinearPartialOrdering.getMaxBid()) {
-                    ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, utilityLowerBound, oppMaxBid);
+                while (count < 500 && ourOffer.equals(ourLinearPartialOrdering.getMaxBid())) {
+                    ourOffer = ourSimilarityMap.findBidCompatibleWithSimilarity(ourNumFirstBids, ourNumLastBids, 0.8, oppMaxBid);
                     count++;
                 }
             }
